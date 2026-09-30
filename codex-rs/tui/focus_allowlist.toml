@@ -18,6 +18,7 @@
 "DynamicToolCallCell" = "summary"
 "ExecCell" = "summary"
 "FinalMessageSeparator" = "full"
+"FocusAggregateCell" = "summary"
 "HookCell" = "full"
 "McpInventoryLoadingCell" = "full"
 "McpToolCallCell" = "summary"

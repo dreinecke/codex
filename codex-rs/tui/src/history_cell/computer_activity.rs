@@ -135,6 +135,18 @@ impl HistoryCell for ComputerActivityCell {
         )
     }
 
+    fn focus_activity_counts(&self) -> Option<crate::focus_summaries::FocusActivityCounts> {
+        let failed = self
+            .group
+            .calls
+            .iter()
+            .any(|call| call.success() == Some(false));
+        (!failed && !self.is_active()).then(|| crate::focus_summaries::FocusActivityCounts {
+            tools: self.group.calls.len(),
+            ..crate::focus_summaries::FocusActivityCounts::default()
+        })
+    }
+
     fn append_reasoning(&mut self, cell: Box<dyn HistoryCell>) -> Result<(), Box<dyn HistoryCell>> {
         if self.group.calls.is_empty() {
             Err(cell)

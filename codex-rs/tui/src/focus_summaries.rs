@@ -4,6 +4,9 @@
 //! cell's full presentation when the activity failed: failures are never condensed, so errored,
 //! denied, and interrupted work stays visible with its exit code and diagnostics. The transcript
 //! pager never uses these; it always renders the full presentation.
+//!
+//! `FocusActivityCounts` and `aggregate_line` power run aggregation: consecutive absorbable tool
+//! cells merge into one dim line ("Searched for 2 patterns, ran 9 shell commands").
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -45,6 +48,120 @@ fn label_line(
         ]),
         width,
     )]
+}
+
+/// Successful tool activity, counted by category for the aggregate line.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct FocusActivityCounts {
+    pub(crate) patterns: usize,
+    pub(crate) reads: usize,
+    pub(crate) edits: usize,
+    pub(crate) tools: usize,
+    pub(crate) shells: usize,
+}
+
+impl std::ops::Add for FocusActivityCounts {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self {
+            patterns: self.patterns + rhs.patterns,
+            reads: self.reads + rhs.reads,
+            edits: self.edits + rhs.edits,
+            tools: self.tools + rhs.tools,
+            shells: self.shells + rhs.shells,
+        }
+    }
+}
+
+/// Count an ExecCell's calls: parsed reads become file reads, parsed searches become patterns,
+/// everything else is a shell command. Failed or user-driven cells are never absorbable.
+pub(crate) fn exec_activity_counts(cell: &ExecCell) -> Option<FocusActivityCounts> {
+    use codex_app_server_protocol::CommandExecutionSource;
+    use codex_protocol::parse_command::ParsedCommand;
+
+    let mut counts = FocusActivityCounts::default();
+    for call in cell.iter_calls() {
+        if call
+            .output
+            .as_ref()
+            .is_some_and(|output| output.exit_code != 0)
+            || matches!(call.source, CommandExecutionSource::UserShell)
+        {
+            return None;
+        }
+        let mut shell_call = false;
+        for parsed in &call.parsed {
+            match parsed {
+                ParsedCommand::Read { .. } => counts.reads += 1,
+                ParsedCommand::Search { .. } => counts.patterns += 1,
+                ParsedCommand::ListFiles { .. } | ParsedCommand::Unknown { .. } => {
+                    shell_call = true
+                }
+            }
+        }
+        if shell_call || call.parsed.is_empty() {
+            counts.shells += 1;
+        }
+    }
+    Some(counts)
+}
+
+fn plural(count: usize, noun: &str) -> String {
+    if count == 1 {
+        noun.to_string()
+    } else {
+        format!("{noun}s")
+    }
+}
+
+/// The aggregate summary line: comma-separated verb phrases in a fixed order, first word
+/// capitalized, no marker and no trailing period — matching Claude Code's focus phrasing.
+pub(crate) fn aggregate_line(counts: &FocusActivityCounts) -> Line<'static> {
+    let mut phrases = Vec::new();
+    if counts.patterns > 0 {
+        phrases.push(format!(
+            "searched for {} {}",
+            counts.patterns,
+            plural(counts.patterns, "pattern")
+        ));
+    }
+    if counts.reads > 0 {
+        phrases.push(format!(
+            "read {} {}",
+            counts.reads,
+            plural(counts.reads, "file")
+        ));
+    }
+    if counts.edits > 0 {
+        phrases.push(format!(
+            "edited {} {}",
+            counts.edits,
+            plural(counts.edits, "file")
+        ));
+    }
+    if counts.tools > 0 {
+        phrases.push(format!(
+            "called {} {}",
+            counts.tools,
+            plural(counts.tools, "tool")
+        ));
+    }
+    if counts.shells > 0 {
+        phrases.push(format!(
+            "ran {} shell {}",
+            counts.shells,
+            plural(counts.shells, "command")
+        ));
+    }
+    let mut text = phrases.join(", ");
+    let mut characters = text.chars();
+    if let Some(first) = characters.next()
+        && first.is_alphabetic()
+    {
+        text = first.to_uppercase().collect::<String>() + characters.as_str();
+    }
+    Line::from(text).dim()
 }
 
 /// `• Ran <command>` per call (or `• Running <command>` while a call is in flight).

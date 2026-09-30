@@ -226,6 +226,15 @@ pub(crate) trait HistoryCell: std::fmt::Debug + Send + Sync + Any {
         self.display_lines(width)
     }
 
+    /// Per-category activity counts for Hushdex focus-mode run aggregation.
+    ///
+    /// Returning `None` (the default) means the cell never merges into a `FocusAggregateCell`:
+    /// full-class cells, hidden cells, and anything that must render in full (failures, user
+    /// `!` shell commands) opt out. Overrides count only successful, absorbable activity.
+    fn focus_activity_counts(&self) -> Option<crate::focus_summaries::FocusActivityCounts> {
+        None
+    }
+
     /// Returns copy-friendly plain logical lines for raw scrollback mode.
     fn raw_lines(&self) -> Vec<Line<'static>>;
 

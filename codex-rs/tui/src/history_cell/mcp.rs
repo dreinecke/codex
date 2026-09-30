@@ -366,6 +366,13 @@ impl HistoryCell for McpToolCallCell {
         )
     }
 
+    fn focus_activity_counts(&self) -> Option<crate::focus_summaries::FocusActivityCounts> {
+        (self.success() == Some(true)).then(|| crate::focus_summaries::FocusActivityCounts {
+            tools: 1,
+            ..crate::focus_summaries::FocusActivityCounts::default()
+        })
+    }
+
     fn activity_ids(&self) -> Vec<String> {
         vec![format!("mcp:{}", self.call_id)]
     }
