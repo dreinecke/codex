@@ -28,6 +28,13 @@ impl HistoryCell for PatchHistoryCell {
         crate::focus_summaries::patch_focus_lines(&self.changes, &self.cwd, width)
     }
 
+    fn focus_activity_counts(&self) -> Option<crate::focus_summaries::FocusActivityCounts> {
+        Some(crate::focus_summaries::FocusActivityCounts {
+            edits: self.changes.len(),
+            ..crate::focus_summaries::FocusActivityCounts::default()
+        })
+    }
+
     fn activity_ids(&self) -> Vec<String> {
         vec![self.activity_id.clone()]
     }

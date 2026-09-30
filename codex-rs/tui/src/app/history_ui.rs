@@ -56,6 +56,11 @@ impl App {
             t.insert_cell(cell.clone());
             tui.frame_requester().schedule_frame();
         }
+        // The pager above keeps the full cell; scrollback may absorb it into an aggregate run.
+        if focus_aggregate::absorb_into_focus_aggregate(self, tui, &cell) {
+            self.chat_widget.request_pending_usage_output_insertion();
+            return;
+        }
         self.transcript_cells.push(cell.clone());
         let deferred = tui.is_owned_screen() || self.native_history.insert(&cell);
         self.render_inserted_history_cell(tui, &cell, deferred);

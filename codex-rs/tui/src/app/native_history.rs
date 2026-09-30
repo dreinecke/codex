@@ -26,6 +26,10 @@ pub(super) fn is_pending(cell: &dyn HistoryCell) -> bool {
 }
 
 impl NativeHistory {
+    pub(super) fn is_empty(&self) -> bool {
+        self.pending.is_empty()
+    }
+
     pub(super) fn contains(&self, cell: &Arc<dyn HistoryCell>) -> bool {
         self.pending
             .iter()

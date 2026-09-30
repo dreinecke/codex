@@ -214,6 +214,10 @@ impl HistoryCell for ExecCell {
         crate::focus_summaries::exec_focus_lines(self, width)
     }
 
+    fn focus_activity_counts(&self) -> Option<crate::focus_summaries::FocusActivityCounts> {
+        crate::focus_summaries::exec_activity_counts(self)
+    }
+
     fn append_reasoning(&mut self, cell: Box<dyn HistoryCell>) -> Result<(), Box<dyn HistoryCell>> {
         if self.is_exploring_cell() {
             self.group.push_detail(std::sync::Arc::from(cell));

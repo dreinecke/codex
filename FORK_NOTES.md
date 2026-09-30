@@ -48,7 +48,7 @@ The plan's assumptions held, with these precise locations:
 | File | Reason |
 | --- | --- |
 | `codex-rs/tui/src/lib.rs` | Register `mod focus;` (+1 line). |
-| `codex-rs/tui/src/history_cell/mod.rs` | Add `focus_lines` default method to `HistoryCell` (defaults to `display_lines`). |
+| `codex-rs/tui/src/history_cell/mod.rs` | Add `focus_lines` default + `focus_activity_counts` default to `HistoryCell`. |
 | `codex-rs/tui/src/history_cell/messages.rs` | `ReasoningSummaryCell::focus_lines` → hidden. |
 | `codex-rs/tui/src/history_cell/mcp.rs` | `McpToolCallCell::focus_lines` → summary. |
 | `codex-rs/tui/src/history_cell/dynamic.rs` | `DynamicToolCallCell::focus_lines` → summary. |
@@ -56,7 +56,9 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/history_cell/patches.rs` | `PatchHistoryCell::focus_lines` → diffstat summary. |
 | `codex-rs/tui/src/history_cell/computer_activity.rs` | `ComputerActivityCell::focus_lines` → summary. |
 | `codex-rs/tui/src/exec_cell/render.rs` | `ExecCell::focus_lines` → command summary. |
-| `codex-rs/tui/src/app/history_ui.rs` | 2 call sites route through the focus-aware helper. |
+| `codex-rs/tui/src/app/history_ui.rs` | 2 call sites route through the focus-aware helper; insertion absorbs into aggregate runs. |
+| `codex-rs/tui/src/app.rs` | Register `mod focus_aggregate;` (+1 line). |
+| `codex-rs/tui/src/app/native_history.rs` | `NativeHistory::is_empty` guard for aggregation (+3 lines). |
 | `codex-rs/tui/src/app/resize_reflow.rs` | 5 call sites route through the focus-aware helper. |
 | `codex-rs/tui/src/app/owned_transcript.rs` | Per-frame sync of focus state into the owned transcript view (+1 line). |
 | `codex-rs/tui/src/transcript_view.rs` | `focus` field + `set_focus_mode` (cache-invalidating) + fork test module. |
@@ -71,7 +73,9 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/BUILD.bazel` | Declare `focus_allowlist.toml` as compile data for `include_str!`. |
 
 New files (fork-owned): `codex-rs/tui/src/focus.rs`, `codex-rs/tui/src/focus_summaries.rs`,
-`codex-rs/tui/src/focus_tests.rs`, `codex-rs/tui/src/transcript_view/focus_layout_tests.rs`,
+`codex-rs/tui/src/focus_tests.rs`, `codex-rs/tui/src/app/focus_aggregate.rs`,
+`codex-rs/tui/src/app/focus_aggregate_tests.rs`,
+`codex-rs/tui/src/transcript_view/focus_layout_tests.rs`,
 `codex-rs/tui/focus_allowlist.toml`,
 `codex-rs/tui/src/snapshots/codex_tui__focus__tests__*.snap` (generated),
 `scripts/install-hushdex.sh`, `FORK_NOTES.md` (this file).
@@ -86,7 +90,7 @@ type is missing, stale, lacks an override, or if the user/agent message types ar
 
 | Type | Focus rendering |
 | --- | --- |
-| `ExecCell` | `• Ran <command>` per call (truncated to width); running calls show `• Running <command>`. Any failed call (exit ≠ 0, incl. interrupted → exit 1) renders the full cell. User `!` shell commands render in full — the user asked for that output directly. |
+| `ExecCell` | Standalone: `• Ran <command>` per call (truncated to width); running calls show `• Running <command>`. Any failed call (exit ≠ 0, incl. interrupted → exit 1) renders the full transcript form. User `!` shell commands render in full — the user asked for that output directly. Consecutive absorbable cells merge into `FocusAggregateCell` runs (see below). |
 | `McpToolCallCell` | `• Called <server>.<tool>`; errored/is-error results render in full. |
 | `DynamicToolCallCell` | `• Called <namespace>.<tool>`; failed/interrupted results render in full. |
 | `WebSearchCell` | First line of normal display (already a one-line "Searched the web for …"). |
@@ -98,6 +102,7 @@ type is missing, stale, lacks an override, or if the user/agent message types ar
 | Type | Focus rendering |
 | --- | --- |
 | `ReasoningSummaryCell` | Nothing in scrollback (matches upstream's completed-reasoning behavior; the transcript pager still shows it). |
+| `FocusAggregateCell` | The run-aggregation cell (fork-owned): one dim Claude-Code-style line, e.g. `Searched for 2 patterns, read 5 files, edited 3 files, called 1 tool, ran 9 shell commands`. |
 
 ### `full` (render unchanged; no `focus_lines` override needed)
 
@@ -131,6 +136,16 @@ condensed).
   browsing (the details mode), raw output mode, and the `Ctrl+T` overlay keep full rendering.
   The `focus_layout_tests` module pins this behavior and fails loudly if upstream moves the
   layout path.
+- **Run aggregation (Claude Code style).** Consecutive absorbable tool cells merge into one
+  `FocusAggregateCell` (`tui/src/app/focus_aggregate.rs`) that renders a single dim line with
+  per-category counts. Absorption happens in `App::insert_history_cell`; merging rewrites the
+  last scrollback block in place via upstream's `replace_visible_history_tail`, so a growing
+  run stays one line. Cells report their counts through the `focus_activity_counts` trait
+  method. Failures, user `!` commands, agent messages, prompts, and anything unclassified close
+  the run and render normally; hidden reasoning cells do not interrupt it. The `Ctrl+T` pager
+  receives every original cell, and turning focus off expands aggregates back to the full
+  presentations. Aggregates do not survive session resume (rebuilt transcripts render per-cell
+  summaries).
 - Raw output mode (`/raw`) wins over focus mode: raw mode is for verbatim terminal selection, so
   focus condensation is suspended while it is active.
 - The live viewport (in-progress cells) keeps its normal rendering; the one-line summaries apply

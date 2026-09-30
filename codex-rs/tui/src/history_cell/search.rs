@@ -125,6 +125,15 @@ impl HistoryCell for WebSearchCell {
         crate::focus_summaries::first_display_line(self.display_lines(width))
     }
 
+    fn focus_activity_counts(&self) -> Option<crate::focus_summaries::FocusActivityCounts> {
+        (self.completed && self.action.is_some()).then(|| {
+            crate::focus_summaries::FocusActivityCounts {
+                patterns: 1,
+                ..crate::focus_summaries::FocusActivityCounts::default()
+            }
+        })
+    }
+
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
         let bullet = if self.completed {
             "•".dim()
