@@ -408,11 +408,19 @@ fn reasoning_cell_focus_lines_are_empty_even_when_displayable() {
 fn focus_notice_names_state_and_transcript_key() {
     let (on_message, on_hint) = crate::focus::focus_notice(true);
     assert!(on_message.starts_with("Focus mode on"), "{on_message}");
+    assert!(
+        on_message.contains(crate::focus::HUSHDEX_BUILD),
+        "notice identifies the hushdex build:\n{on_message}"
+    );
     let hint = on_hint.expect("notice hints at the transcript key");
     assert!(hint.contains("full transcript"), "{hint}");
 
     let (off_message, _) = crate::focus::focus_notice(false);
     assert!(off_message.starts_with("Focus mode off"), "{off_message}");
+    assert!(
+        off_message.contains(crate::focus::HUSHDEX_BUILD),
+        "notice identifies the hushdex build:\n{off_message}"
+    );
 }
 
 #[tokio::test]
