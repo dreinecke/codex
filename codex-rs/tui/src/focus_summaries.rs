@@ -15,12 +15,14 @@ use std::path::PathBuf;
 use crate::diff_model::FileChange;
 use crate::diff_render::calculate_add_remove_from_diff;
 use crate::diff_render::display_path_for;
+use crate::exec_cell::ExecCall;
 use crate::exec_cell::ExecCell;
 use crate::exec_command::strip_bash_lc_and_escape;
 use crate::history_cell::HistoryCell;
 use crate::line_truncation::truncate_line_with_ellipsis_if_overflow;
 use crate::render::highlight::highlight_bash_to_lines;
 use codex_app_server_protocol::CommandExecutionSource;
+use codex_protocol::parse_command::ParsedCommand;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::text::Span;
@@ -56,6 +58,7 @@ pub(crate) struct FocusActivityCounts {
     pub(crate) patterns: usize,
     pub(crate) reads: usize,
     pub(crate) edits: usize,
+    pub(crate) images: usize,
     pub(crate) tools: usize,
     pub(crate) shells: usize,
 }
@@ -68,26 +71,65 @@ impl std::ops::Add for FocusActivityCounts {
             patterns: self.patterns + rhs.patterns,
             reads: self.reads + rhs.reads,
             edits: self.edits + rhs.edits,
+            images: self.images + rhs.images,
             tools: self.tools + rhs.tools,
             shells: self.shells + rhs.shells,
         }
     }
 }
 
-/// Count an ExecCell's calls: parsed reads become file reads, parsed searches become patterns,
-/// everything else is a shell command. Failed or user-driven cells are never absorbable.
-pub(crate) fn exec_activity_counts(cell: &ExecCell) -> Option<FocusActivityCounts> {
-    use codex_app_server_protocol::CommandExecutionSource;
-    use codex_protocol::parse_command::ParsedCommand;
+/// Leading tokens of commands whose exit code 1 almost always means "no matches" rather than
+/// failure: searches, reads, and comparisons. Anything else exiting 1 (or any exit ≥ 2) keeps
+/// the full failure rendering.
+const BENIGN_EXIT_1_LEADS: &[&str] = &[
+    "awk", "cat", "diff", "echo", "file", "find", "git", "grep", "head", "hg", "jq", "less", "ls",
+    "printf", "pwd", "rg", "sed", "sort", "stat", "tail", "true", "uniq", "wc", "which",
+];
 
+/// Whether an exec call may condense: exit 0 always; exit 1 only for parsed reads/searches or
+/// scripts led by a read-only command (skipping `cd` segments). Exit ≥ 2 and interrupted work
+/// are never condensed.
+fn absorbable_exit(call: &ExecCall) -> bool {
+    let Some(output) = call.output.as_ref() else {
+        return false;
+    };
+    if output.exit_code == 0 {
+        return true;
+    }
+    if output.exit_code != 1 || call.duration.is_none() {
+        return false;
+    }
+    if call.parsed.iter().all(|parsed| {
+        matches!(
+            parsed,
+            ParsedCommand::Read { .. } | ParsedCommand::Search { .. }
+        )
+    }) {
+        return true;
+    }
+    let script = strip_bash_lc_and_escape(&call.command);
+    script
+        .split([';', '&'])
+        .map(str::trim)
+        .filter(|segment| !segment.is_empty())
+        .find_map(|segment| {
+            let lead = segment.split_whitespace().next()?;
+            (!matches!(lead, "cd" | "pushd")).then_some(lead)
+        })
+        .map(|lead| {
+            let lead = lead.rsplit('/').next().unwrap_or(lead);
+            BENIGN_EXIT_1_LEADS.contains(&lead.to_ascii_lowercase().as_str())
+        })
+        .unwrap_or(false)
+}
+
+/// Count an ExecCell's calls: parsed reads become file reads, parsed searches become patterns,
+/// everything else is a shell command. Hard failures and user-driven cells are never
+/// absorbable.
+pub(crate) fn exec_activity_counts(cell: &ExecCell) -> Option<FocusActivityCounts> {
     let mut counts = FocusActivityCounts::default();
     for call in cell.iter_calls() {
-        if call
-            .output
-            .as_ref()
-            .is_some_and(|output| output.exit_code != 0)
-            || matches!(call.source, CommandExecutionSource::UserShell)
-        {
+        if !absorbable_exit(call) || matches!(call.source, CommandExecutionSource::UserShell) {
             return None;
         }
         let mut shell_call = false;
@@ -140,6 +182,13 @@ pub(crate) fn aggregate_line(counts: &FocusActivityCounts) -> Line<'static> {
             plural(counts.edits, "file")
         ));
     }
+    if counts.images > 0 {
+        phrases.push(format!(
+            "viewed {} {}",
+            counts.images,
+            plural(counts.images, "image")
+        ));
+    }
     if counts.tools > 0 {
         phrases.push(format!(
             "called {} {}",
@@ -171,11 +220,7 @@ pub(crate) fn aggregate_line(counts: &FocusActivityCounts) -> Line<'static> {
 /// visible, and any user `!` shell command renders in full because its output is what the user
 /// explicitly asked to run.
 pub(crate) fn exec_focus_lines(cell: &ExecCell, width: u16) -> Vec<Line<'static>> {
-    let failed = cell.iter_calls().any(|call| {
-        call.output
-            .as_ref()
-            .is_some_and(|output| output.exit_code != 0)
-    });
+    let failed = cell.iter_calls().any(|call| !absorbable_exit(call));
     let user_shell = cell
         .iter_calls()
         .any(|call| matches!(call.source, CommandExecutionSource::UserShell));

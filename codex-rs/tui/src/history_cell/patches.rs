@@ -175,6 +175,17 @@ pub(crate) struct ViewImageHistoryCell {
 }
 
 impl HistoryCell for ViewImageHistoryCell {
+    fn focus_lines(&self, width: u16) -> Vec<Line<'static>> {
+        crate::focus_summaries::first_display_line(self.display_lines(width))
+    }
+
+    fn focus_activity_counts(&self) -> Option<crate::focus_summaries::FocusActivityCounts> {
+        Some(crate::focus_summaries::FocusActivityCounts {
+            images: 1,
+            ..crate::focus_summaries::FocusActivityCounts::default()
+        })
+    }
+
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
         let line = vec![
             "• ".dim(),
