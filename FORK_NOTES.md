@@ -58,6 +58,10 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/exec_cell/render.rs` | `ExecCell::focus_lines` → command summary. |
 | `codex-rs/tui/src/app/history_ui.rs` | 2 call sites route through the focus-aware helper. |
 | `codex-rs/tui/src/app/resize_reflow.rs` | 5 call sites route through the focus-aware helper. |
+| `codex-rs/tui/src/app/owned_transcript.rs` | Per-frame sync of focus state into the owned transcript view (+1 line). |
+| `codex-rs/tui/src/transcript_view.rs` | `focus` field + `set_focus_mode` (cache-invalidating) + fork test module. |
+| `codex-rs/tui/src/transcript_view/layout.rs` | `CellPresentation.focus` cache key; committed cells render `focus_lines` when focused. |
+| `codex-rs/tui/src/transcript_view/layout_tests.rs` | `focus: false` in `CellPresentation` test literals (+3 lines). |
 | `codex-rs/tui/src/chatwidget.rs` | `focus_mode: bool` field on `ChatWidget` (+1 line). |
 | `codex-rs/tui/src/chatwidget/constructor.rs` | Initialize `focus_mode` from `focus::default_enabled()` (+1 line). |
 | `codex-rs/tui/src/slash_command.rs` | `Focus` variant + description + availability lists. |
@@ -67,7 +71,8 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/BUILD.bazel` | Declare `focus_allowlist.toml` as compile data for `include_str!`. |
 
 New files (fork-owned): `codex-rs/tui/src/focus.rs`, `codex-rs/tui/src/focus_summaries.rs`,
-`codex-rs/tui/src/focus_tests.rs`, `codex-rs/tui/focus_allowlist.toml`,
+`codex-rs/tui/src/focus_tests.rs`, `codex-rs/tui/src/transcript_view/focus_layout_tests.rs`,
+`codex-rs/tui/focus_allowlist.toml`,
 `codex-rs/tui/src/snapshots/codex_tui__focus__tests__*.snap` (generated),
 `scripts/install-hushdex.sh`, `FORK_NOTES.md` (this file).
 
@@ -118,6 +123,14 @@ condensed).
 - Cells whose `focus_lines` is empty are skipped entirely, including the blank separator line —
   the existing empty-line machinery in `display_lines_for_history_insert` already does this once
   the lines are empty.
+- **Fullscreen (owned-screen) mode — the TUI default — condenses too.** The owned transcript
+  renders committed cells through `TranscriptView::current_layout` in
+  `tui/src/transcript_view/layout.rs`; when focus is on, those cells render `focus_lines`
+  instead of the compact/retained presentation, and disclosure affordances
+  (`+ Show details` / `+ N lines`) are suppressed. The live tail (in-flight cell), detailed
+  browsing (the details mode), raw output mode, and the `Ctrl+T` overlay keep full rendering.
+  The `focus_layout_tests` module pins this behavior and fails loudly if upstream moves the
+  layout path.
 - Raw output mode (`/raw`) wins over focus mode: raw mode is for verbatim terminal selection, so
   focus condensation is suspended while it is active.
 - The live viewport (in-progress cells) keeps its normal rendering; the one-line summaries apply
