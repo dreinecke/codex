@@ -88,6 +88,7 @@ pub(super) struct CellPresentation {
     expanded: bool,
     disclosure: bool,
     detailed: bool,
+    focus: bool,
 }
 
 impl TranscriptView {
@@ -165,8 +166,12 @@ impl TranscriptView {
             return Some(Arc::new(TextLayout::new(Vec::new(), width)));
         }
         let mode = self.mode;
+        // Focus mode condenses committed cells the same way terminal scrollback is condensed.
+        // Detailed browsing, Find expansion (`full_content`), and raw mode override it; the live
+        // tail never passes through here.
+        let focus = self.focus && !full_content && !self.detailed && mode == HistoryRenderMode::Rich;
         let ids = cell.activity_ids();
-        let disclosure = !self.detailed && mode == HistoryRenderMode::Rich && !ids.is_empty();
+        let disclosure = !focus && !self.detailed && mode == HistoryRenderMode::Rich && !ids.is_empty();
         let manually_expanded = self.disclosure.is_expanded(&ids);
         let expanded = disclosure && (full_content || manually_expanded);
         if manually_expanded {
@@ -179,12 +184,20 @@ impl TranscriptView {
             expanded,
             disclosure,
             detailed: full_content,
+            focus,
         };
         let shortcut = self
             .disclosure
             .keymap
             .primary_hint(KeymapContext::Global, "open_transcript");
         Some(self.cache.get(cell, width, presentation, || {
+            if focus && !cell.as_any().is::<crate::history_cell::SessionInfoCell>() {
+                // Session headers keep their composite presentation; everything else condenses.
+                return TextLayout::new(
+                    crate::terminal_hyperlinks::plain_hyperlink_lines(cell.focus_lines(width)),
+                    width,
+                );
+            }
             if disclosure {
                 activity_layout(
                     ActivityTranscriptLines {
