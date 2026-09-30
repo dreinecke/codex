@@ -1,0 +1,67 @@
+---
+source: tui/src/focus_tests.rs
+assertion_line: 267
+expression: "render(&cells.all(), false)"
+---
+
+› List the files in the current directory and summarize the build setup.
+
+
+• I should cross-check the manifest before listing files so the summary is
+  accurate.
+
+• I will inspect the directory first, then report back.
+
+• Ran cargo build --quiet
+  └    Compiling hushdex
+        Finished `dev`
+
+• Ran cargo test
+  └ error: could not compile `hushdex` due to 3 previous errors
+
+• Edited 7 files (+14 -3)
+  └ src/app.rs (+3 -1)
+    1  context
+    2 -delta
+    2 +alpha
+    3 +beta
+    4 +gamma
+
+  └ src/five.rs (+1 -0)
+    1  context
+    2 +x
+
+  └ src/four.rs (+1 -0)
+    1  context
+    2 +x
+
+  └ src/gone_module.rs (+0 -2)
+    1 -one
+    2 -two
+
+  └ src/new_module.rs (+7 -0)
+    1 +one
+    2 +two
+    3 +three
+    4 +four
+    5 +five
+    6 +six
+    7 +seven
+
+  └ src/seven.rs (+1 -0)
+    1  context
+    2 +x
+
+  └ src/six.rs (+1 -0)
+    1  context
+    2 +x
+
+• Called github.search_code()
+  └ found 3 matching repositories
+
+• Called github.get_file()
+  └ Error: tool server timed out
+
+• Searched the web for rust terminal ui framework
+
+• All done — 3 files updated and the build is green.
