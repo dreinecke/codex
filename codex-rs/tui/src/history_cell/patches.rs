@@ -24,6 +24,10 @@ impl PatchHistoryCell {
 }
 
 impl HistoryCell for PatchHistoryCell {
+    fn focus_lines(&self, width: u16) -> Vec<Line<'static>> {
+        crate::focus_summaries::patch_focus_lines(&self.changes, &self.cwd, width)
+    }
+
     fn activity_ids(&self) -> Vec<String> {
         vec![self.activity_id.clone()]
     }

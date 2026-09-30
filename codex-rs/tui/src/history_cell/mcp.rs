@@ -356,6 +356,16 @@ impl McpToolCallCell {
 }
 
 impl HistoryCell for McpToolCallCell {
+    fn focus_lines(&self, width: u16) -> Vec<Line<'static>> {
+        crate::focus_summaries::mcp_call_focus_lines(
+            self.success(),
+            &self.invocation.server,
+            &self.invocation.tool,
+            width,
+            || self.display_lines(width),
+        )
+    }
+
     fn activity_ids(&self) -> Vec<String> {
         vec![format!("mcp:{}", self.call_id)]
     }

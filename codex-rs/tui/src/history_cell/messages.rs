@@ -393,6 +393,10 @@ impl ReasoningSummaryCell {
 }
 
 impl HistoryCell for ReasoningSummaryCell {
+    fn focus_lines(&self, _width: u16) -> Vec<Line<'static>> {
+        crate::focus::hidden_focus_lines()
+    }
+
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
         visible_lines(self.display_hyperlink_lines(width))
     }

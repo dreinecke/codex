@@ -47,6 +47,7 @@ pub enum SlashCommand {
     Btw,
     Copy,
     Export,
+    Focus,
     Raw,
     Tui,
     Diff,
@@ -107,6 +108,7 @@ impl SlashCommand {
             SlashCommand::Quit | SlashCommand::Exit => "exit Codex",
             SlashCommand::Copy => "copy the last response or part of it",
             SlashCommand::Export => "export the conversation as markdown",
+            SlashCommand::Focus => "toggle condensed scrollback (prompts, tool summaries, replies)",
             SlashCommand::Raw => "toggle raw scrollback mode for copy-friendly terminal selection",
             SlashCommand::Tui => "choose the TUI mode for the next launch",
             SlashCommand::Diff => "show git diff (including untracked files)",
@@ -180,6 +182,7 @@ impl SlashCommand {
                 | SlashCommand::Keymap
                 | SlashCommand::Mcp
                 | SlashCommand::Export
+                | SlashCommand::Focus
                 | SlashCommand::Raw
                 | SlashCommand::Cd
                 | SlashCommand::Pwd
@@ -198,6 +201,7 @@ impl SlashCommand {
             SlashCommand::Copy
                 | SlashCommand::Agents
                 | SlashCommand::Export
+                | SlashCommand::Focus
                 | SlashCommand::Raw
                 | SlashCommand::Diff
                 | SlashCommand::Mention
@@ -233,6 +237,7 @@ impl SlashCommand {
                 | SlashCommand::Pwd
                 | SlashCommand::Rollout
                 | SlashCommand::Copy
+                | SlashCommand::Focus
                 | SlashCommand::Raw
         )
     }
@@ -269,6 +274,7 @@ impl SlashCommand {
             | SlashCommand::Daybreak
             | SlashCommand::Permissions
             | SlashCommand::Copy
+            | SlashCommand::Focus
             | SlashCommand::Raw
             | SlashCommand::Rename
             | SlashCommand::Mention
