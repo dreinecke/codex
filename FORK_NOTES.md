@@ -90,10 +90,11 @@ type is missing, stale, lacks an override, or if the user/agent message types ar
 
 | Type | Focus rendering |
 | --- | --- |
-| `ExecCell` | Standalone: `• Ran <command>` per call (truncated to width); running calls show `• Running <command>`. Any failed call (exit ≠ 0, incl. interrupted → exit 1) renders the full transcript form. User `!` shell commands render in full — the user asked for that output directly. Consecutive absorbable cells merge into `FocusAggregateCell` runs (see below). |
+| `ExecCell` | Standalone: `• Ran <command>` per call (truncated to width); running calls show `• Running <command>`. Hard failures (exit ≥ 2, interrupted) render the full transcript form; benign exit 1 from read-only commands stays condensed (see the failure rule below). User `!` shell commands render in full — the user asked for that output directly. Consecutive absorbable cells merge into `FocusAggregateCell` runs (see below). |
 | `McpToolCallCell` | `• Called <server>.<tool>`; errored/is-error results render in full. |
 | `DynamicToolCallCell` | `• Called <namespace>.<tool>`; failed/interrupted results render in full. |
 | `WebSearchCell` | First line of normal display (already a one-line "Searched the web for …"). |
+| `ViewImageHistoryCell` | Standalone: one `• Viewed image <name>` line; absorbable into runs as `viewed N images`. |
 | `PatchHistoryCell` | `• Edited <path> (+A −D)` per file, `• Added <path>` / `• Deleted <path>` for new/removed files; caps at 5 files then `• …and N more files`. |
 | `ComputerActivityCell` | `• Used computer · N actions` (+ failure count); any failed action renders in full. |
 
@@ -110,7 +111,7 @@ type is missing, stale, lacks an override, or if the user/agent message types ar
 `StreamingPlanTailCell`, `ProposedPlanCell`, `ProposedPlanStreamCell`, `PlanUpdateCell`,
 `PlainHistoryCell`, `WebHyperlinkHistoryCell`, `PrefixedWrappedHistoryCell` (all approval /
 denial / review cells), `CompositeHistoryCell`, `WarningHistoryCell`, `StartupWarningsCell`,
-`FinalMessageSeparator`, `RequestUserInputResultCell`, `ViewImageHistoryCell`,
+`FinalMessageSeparator`, `RequestUserInputResultCell`,
 `UpdateAvailableHistoryCell`, `SafetyAccessBlockCell`, `DeprecationNoticeCell`,
 `ThreadRecapLoadingCell`, `ThreadRecapHistoryCell`, `TooltipHistoryCell`, `SessionNoticeCell`,
 `SessionInfoCell`, `SessionHeaderHistoryCell`, `McpInventoryLoadingCell`, `HookCell`,
@@ -128,6 +129,11 @@ condensed).
 - Cells whose `focus_lines` is empty are skipped entirely, including the blank separator line —
   the existing empty-line machinery in `display_lines_for_history_insert` already does this once
   the lines are empty.
+- **Failure rendering is tiered by exit code.** Exit ≥ 2 (and interrupted work) always renders
+  in the full transcript form with the exit code. Exit 1 is treated as benign — "no matches" —
+  and stays condensed when the command is read-only: parsed reads/searches, or a script led by a
+  read-only command from `BENIGN_EXIT_1_LEADS` in `focus_summaries.rs` (cat/rg/grep/tail/git/…,
+  skipping `cd` segments). Exit 1 from anything else (pytest, cargo, …) renders in full.
 - **Fullscreen (owned-screen) mode — the TUI default — condenses too.** The owned transcript
   renders committed cells through `TranscriptView::current_layout` in
   `tui/src/transcript_view/layout.rs`; when focus is on, those cells render `focus_lines`

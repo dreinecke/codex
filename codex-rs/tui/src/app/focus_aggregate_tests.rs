@@ -75,6 +75,7 @@ fn aggregate_line_phrases_match_claude_code_style() {
         patterns: 1,
         reads: 2,
         edits: 0,
+        images: 0,
         tools: 0,
         shells: 9,
     };
@@ -87,12 +88,13 @@ fn aggregate_line_phrases_match_claude_code_style() {
         patterns: 0,
         reads: 1,
         edits: 3,
+        images: 2,
         tools: 2,
         shells: 1,
     };
     assert_eq!(
         aggregate_line(&counts).to_string(),
-        "Read 1 file, edited 3 files, called 2 tools, ran 1 shell command"
+        "Read 1 file, edited 3 files, viewed 2 images, called 2 tools, ran 1 shell command"
     );
 
     let counts = FocusActivityCounts {
@@ -167,6 +169,34 @@ fn exec_counts_split_reads_searches_and_shell_commands() {
         )),
         None
     );
+
+    // Exit 1 from a read-only command (rg with no matches at the end of a pipeline) is
+    // benign and stays absorbable; from anything else it is a real failure.
+    let benign = exec_cell(
+        "benign",
+        "cat a.json; rg -n x a.rb | tail -15; rg -n y b.erb",
+        vec![ParsedCommand::Unknown {
+            cmd: "cat a.json".to_string(),
+        }],
+        /*exit_code*/ 1,
+    );
+    assert_eq!(
+        exec_activity_counts(&benign),
+        Some(FocusActivityCounts {
+            shells: 1,
+            ..FocusActivityCounts::default()
+        })
+    );
+
+    let real_failure = exec_cell(
+        "real-failure",
+        "pytest -q",
+        vec![ParsedCommand::Unknown {
+            cmd: "pytest -q".to_string(),
+        }],
+        /*exit_code*/ 1,
+    );
+    assert_eq!(exec_activity_counts(&real_failure), None);
 }
 
 #[test]

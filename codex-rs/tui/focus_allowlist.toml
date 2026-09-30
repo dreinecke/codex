@@ -46,7 +46,7 @@
 "UnifiedExecProcessesCell" = "full"
 "UpdateAvailableHistoryCell" = "full"
 "UserHistoryCell" = "full"
-"ViewImageHistoryCell" = "full"
+"ViewImageHistoryCell" = "summary"
 "WarningHistoryCell" = "full"
 "WebHyperlinkHistoryCell" = "full"
 "WebSearchCell" = "summary"
