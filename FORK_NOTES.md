@@ -121,6 +121,10 @@ condensed).
 
 ## Behavior notes
 
+- **Build identity**: `HUSHDEX_BUILD` in `tui/src/focus.rs` (format `YYYY-MM-DD.N`) identifies the
+  fork build; it prints in the `/focus` notice because `--version` reports only the upstream
+  number. Bump it in every fork commit that changes behavior, and record the mapping in the
+  commit message.
 - Focus mode is **on by default**; `HUSHDEX_FOCUS=0` starts a session with focus off; `/focus`
   toggles it for the session and prints an info line naming the transcript-overlay key.
 - The toggle affects only cells inserted afterward; already-printed scrollback is not re-rendered

@@ -19,6 +19,11 @@ use crate::terminal_hyperlinks::HyperlinkLine;
 use crate::terminal_hyperlinks::plain_hyperlink_lines;
 use ratatui::text::Line;
 
+/// Identity of this Hushdex build: the date and sequence of fork changes that day.
+/// Bump this in every fork commit that changes behavior; it prints in the `/focus` notice so a
+/// running session can identify itself (`hushdex --version` only reports the upstream number).
+pub(crate) const HUSHDEX_BUILD: &str = "2026-09-30.5";
+
 /// Whether new sessions start with focus mode on.
 ///
 /// `HUSHDEX_FOCUS=0` opts out. Unit tests default to off so upstream tests keep asserting full
@@ -30,14 +35,18 @@ pub(crate) fn default_enabled() -> bool {
     !matches!(std::env::var("HUSHDEX_FOCUS").as_deref(), Ok("0" | "false"))
 }
 
-/// The `/focus` notice: the new state plus the key that opens the full transcript.
+/// The `/focus` notice: the new state, the build identity, and the transcript-overlay key.
 pub(crate) fn focus_notice(enabled: bool) -> (String, Option<String>) {
     let message = if enabled {
-        "Focus mode on: new tool activity is condensed to one-line summaries."
+        format!(
+            "Focus mode on (hushdex build {HUSHDEX_BUILD}): new tool activity is condensed to \
+             one-line summaries."
+        )
     } else {
-        "Focus mode off: new tool activity is shown in full."
-    }
-    .to_string();
+        format!(
+            "Focus mode off (hushdex build {HUSHDEX_BUILD}): new tool activity is shown in full."
+        )
+    };
     let hint = crate::keymap::RuntimeKeymap::defaults()
         .primary_hint(crate::keymap::KeymapContext::Global, "open_transcript")
         .map(|binding| format!("Press {} for the full transcript.", binding.display_label()));
