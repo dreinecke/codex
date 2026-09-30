@@ -216,6 +216,16 @@ pub(crate) trait HistoryCell: std::fmt::Debug + Send + Sync + Any {
     /// Returns the logical lines for the main chat viewport.
     fn display_lines(&self, width: u16) -> Vec<Line<'static>>;
 
+    /// Returns the lines written to terminal scrollback while Hushdex focus mode is on.
+    ///
+    /// The default renders the cell in full, so only cells classified `summary` or `hidden` in
+    /// `focus_allowlist.toml` override this. Overrides must never condense failures: errored,
+    /// denied, or interrupted work falls back to `display_lines`. The transcript pager and the
+    /// live viewport ignore this and keep using the full presentation.
+    fn focus_lines(&self, width: u16) -> Vec<Line<'static>> {
+        self.display_lines(width)
+    }
+
     /// Returns copy-friendly plain logical lines for raw scrollback mode.
     fn raw_lines(&self) -> Vec<Line<'static>>;
 

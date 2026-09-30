@@ -523,6 +523,8 @@ pub(crate) struct ChatWidget {
     config: Config,
     pub(crate) local_settings: crate::local_settings::LocalSettings,
     raw_output_mode: bool,
+    /// Hushdex focus mode: condense scrollback to prompts, tool summaries, and agent text.
+    pub(crate) focus_mode: bool,
     /// Runtime value resolved by core. `config.service_tier` remains the explicit user choice.
     effective_service_tier: Option<String>,
     /// The unmasked collaboration mode settings (always Default mode).

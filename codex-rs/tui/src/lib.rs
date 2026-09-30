@@ -148,6 +148,8 @@ mod exec_command;
 mod external_agent_config_migration;
 mod external_editor;
 mod file_search;
+mod focus;
+mod focus_summaries;
 mod get_git_diff;
 mod git_action_directives;
 mod goal_display;

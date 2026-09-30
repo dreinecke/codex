@@ -80,7 +80,7 @@ impl App {
         // Owned replay must not eagerly format every historical entry. Composite status cards are
         // the only committed cells whose mutable usage data needs insertion-time bookkeeping.
         let lines = if !deferred || cell.as_any().is::<history_cell::CompositeHistoryCell>() {
-            cell.display_hyperlink_lines_for_mode(width, self.chat_widget.history_render_mode())
+            self.scrollback_cell_hyperlink_lines(cell.as_ref(), width)
         } else {
             Vec::new()
         };
@@ -173,8 +173,7 @@ impl App {
         let width = self
             .chat_widget
             .history_wrap_width(tui.terminal.last_known_screen_size.width);
-        let updated_lines = status_cell
-            .display_hyperlink_lines_for_mode(width, self.chat_widget.history_render_mode());
+        let updated_lines = self.scrollback_cell_hyperlink_lines(status_cell.as_ref(), width);
         if updated_lines == status_history.lines {
             self.pending_thread_usage_history_refresh = false;
             return Ok(());

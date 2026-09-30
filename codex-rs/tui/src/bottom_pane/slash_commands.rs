@@ -328,6 +328,7 @@ mod tests {
                 SlashCommand::Agents,
                 SlashCommand::Copy,
                 SlashCommand::Export,
+                SlashCommand::Focus,
                 SlashCommand::Raw,
                 SlashCommand::Diff,
                 SlashCommand::Mention,

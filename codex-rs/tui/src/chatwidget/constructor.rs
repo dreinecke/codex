@@ -115,6 +115,7 @@ impl ChatWidget {
             }),
             transcript: TranscriptState::new(active_cell),
             raw_output_mode: local_settings.tui.raw_output_mode,
+            focus_mode: crate::focus::default_enabled(),
             config,
             local_settings,
             effective_service_tier,

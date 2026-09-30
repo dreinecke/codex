@@ -177,6 +177,20 @@ impl HistoryCell for DynamicToolCallCell {
         false
     }
 
+    fn focus_lines(&self, width: u16) -> Vec<Line<'static>> {
+        let data = self
+            .data
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        crate::focus_summaries::dynamic_call_focus_lines(
+            data.is_active(),
+            data.interrupted || matches!(data.status, DynamicToolCallStatus::Failed),
+            &data.name,
+            width,
+            || self.display_lines(width),
+        )
+    }
+
     fn activity_ids(&self) -> Vec<String> {
         vec![format!("dynamic:{}", self.call_id)]
     }

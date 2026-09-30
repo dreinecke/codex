@@ -119,6 +119,22 @@ fn error_preview(call: &McpToolCallCell) -> Option<&str> {
 }
 
 impl HistoryCell for ComputerActivityCell {
+    fn focus_lines(&self, width: u16) -> Vec<Line<'static>> {
+        let failed = self
+            .group
+            .calls
+            .iter()
+            .any(|call| call.success() == Some(false));
+        if failed {
+            return self.display_lines(width);
+        }
+        crate::focus_summaries::computer_activity_focus_lines(
+            self.group.calls.len(),
+            self.is_active(),
+            width,
+        )
+    }
+
     fn append_reasoning(&mut self, cell: Box<dyn HistoryCell>) -> Result<(), Box<dyn HistoryCell>> {
         if self.group.calls.is_empty() {
             Err(cell)
