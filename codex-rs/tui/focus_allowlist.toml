@@ -1,0 +1,51 @@
+# Hushdex focus-mode classification of every `HistoryCell` type in codex-tui.
+#
+# full    = rendered unchanged in focus mode (default; no `focus_lines` override needed)
+# summary = condensed to one line per item by `focus_summaries.rs`
+# hidden  = omitted from scrollback in focus mode (the transcript pager shows everything)
+#
+# The `focus_allowlist_is_complete` test in tui/src/focus_tests.rs scans the crate sources for
+# `impl HistoryCell for <Type>` and fails with instructions when this table and the code drift.
+
+[cells]
+"AgentMarkdownCell" = "full"
+"AgentMessageCell" = "full"
+"AgentStatusHistoryCell" = "full"
+"Arc<StatusHistoryCell>" = "full"
+"CompositeHistoryCell" = "full"
+"ComputerActivityCell" = "summary"
+"DeprecationNoticeCell" = "full"
+"DynamicToolCallCell" = "summary"
+"ExecCell" = "summary"
+"FinalMessageSeparator" = "full"
+"HookCell" = "full"
+"McpInventoryLoadingCell" = "full"
+"McpToolCallCell" = "summary"
+"PatchFailureCell" = "full"
+"PatchHistoryCell" = "summary"
+"PlainHistoryCell" = "full"
+"PlanUpdateCell" = "full"
+"PrefixedWrappedHistoryCell" = "full"
+"ProposedPlanCell" = "full"
+"ProposedPlanStreamCell" = "full"
+"ReasoningSummaryCell" = "hidden"
+"RequestUserInputResultCell" = "full"
+"SafetyAccessBlockCell" = "full"
+"SessionHeaderHistoryCell" = "full"
+"SessionInfoCell" = "full"
+"SessionNoticeCell" = "full"
+"SplitFlapTranscriptCell" = "full"
+"StartupWarningsCell" = "full"
+"StreamingAgentTailCell" = "full"
+"StreamingPlanTailCell" = "full"
+"ThreadRecapHistoryCell" = "full"
+"ThreadRecapLoadingCell" = "full"
+"TooltipHistoryCell" = "full"
+"UnifiedExecInteractionCell" = "full"
+"UnifiedExecProcessesCell" = "full"
+"UpdateAvailableHistoryCell" = "full"
+"UserHistoryCell" = "full"
+"ViewImageHistoryCell" = "full"
+"WarningHistoryCell" = "full"
+"WebHyperlinkHistoryCell" = "full"
+"WebSearchCell" = "summary"

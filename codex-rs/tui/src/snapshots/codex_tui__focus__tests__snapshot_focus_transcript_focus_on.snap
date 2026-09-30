@@ -1,0 +1,32 @@
+---
+source: tui/src/focus_tests.rs
+assertion_line: 261
+expression: "render(&cells.all(), true)"
+---
+
+› List the files in the current directory and summarize the build setup.
+
+
+• I will inspect the directory first, then report back.
+
+• Ran cargo build --quiet
+
+$ cargo test
+error: could not compile `hushdex` due to 3 previous errors
+✗ (2) • 3.40s
+
+• Edited src/app.rs (+3 -1)
+• Edited src/five.rs (+1 -0)
+• Edited src/four.rs (+1 -0)
+• Deleted src/gone_module.rs
+• Added src/new_module.rs
+• …and 2 more files
+
+• Called github.search_code
+
+• Called github.get_file()
+  └ Error: tool server timed out
+
+• Searched the web for rust terminal ui framework
+
+• All done — 3 files updated and the build is green.
