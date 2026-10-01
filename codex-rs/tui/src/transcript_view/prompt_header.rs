@@ -45,16 +45,15 @@ pub(super) fn line(
     } else {
         message
     };
+    // Hushdex: the pinned header mirrors the banded prompt so the top row matches the
+    // original rendering, including the spoken bar color.
+    let fill = crate::user_band::user_band_fill();
     Some(truncate_line_with_ellipsis_if_overflow(
         Line::from(vec![
-            if prompt.spoken {
-                "› ".red().bold()
-            } else {
-                "› ".bold().dim()
-            },
+            crate::user_band::bar_prefix_span(fill, prompt.spoken),
             message.into(),
         ])
-        .style(crate::style::history_prompt_style()),
+        .style(fill),
         usize::from(width.saturating_sub(1)),
     ))
 }

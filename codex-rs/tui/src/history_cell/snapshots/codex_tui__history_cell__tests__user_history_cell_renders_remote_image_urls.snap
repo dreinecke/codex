@@ -1,8 +1,10 @@
 ---
-source: tui/src/history_cell.rs
+source: tui/src/history_cell/tests.rs
+assertion_line: 2408
 expression: rendered
 ---
-
-  [Image #1]
-
-› describe these
+▌ 
+▌ [Image #1]
+▌ 
+▌ describe these
+▌

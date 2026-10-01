@@ -1,7 +1,7 @@
 ---
 source: tui/tests/suite/external_editor_tests.rs
-assertion_line: 89
+assertion_line: 101
 expression: visible
 ---
-› initial draft
+▌ initial draft
   Save and close external editor to continue.

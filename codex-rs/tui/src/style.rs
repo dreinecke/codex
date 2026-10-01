@@ -104,6 +104,28 @@ pub(crate) fn accent_color() -> Color {
     accent_color_for(default_bg())
 }
 
+/// Hushdex: a runner-deterministic accent for painted surfaces (user-band bars).
+///
+/// [`accent_color_for`] consults the effective stdout color level, which is a sticky
+/// thread-local under `cargo test` and unset under nextest; pinning the level keeps the
+/// accent identical across test runners while still adapting to the painted background.
+pub(crate) fn deterministic_accent_on(background: Option<Color>) -> Color {
+    let bg = match background {
+        Some(Color::Rgb(r, g, b)) => Some((r, g, b)),
+        Some(Color::Indexed(index)) if index >= 16 => {
+            Some(crate::terminal_palette::XTERM_COLORS[usize::from(index)])
+        }
+        None | Some(Color::Reset) => default_bg(),
+        _ => None,
+    };
+    let preferred = if bg.is_some_and(is_light) {
+        LIGHT_BG_ACCENT_RGB
+    } else {
+        UI_ACCENT
+    };
+    contrast::foreground(preferred, bg, StdoutColorLevel::TrueColor)
+}
+
 /// Resolve emphasis against the fill actually painted behind it.
 pub(crate) fn accent_color_on(background: Option<Color>) -> Color {
     accent_color_for(background_rgb(background))

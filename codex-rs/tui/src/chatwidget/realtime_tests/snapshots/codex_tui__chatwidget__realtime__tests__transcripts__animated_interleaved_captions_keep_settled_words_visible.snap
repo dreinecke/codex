@@ -1,0 +1,18 @@
+---
+source: tui/src/chatwidget/realtime_tests/transcripts.rs
+assertion_line: 902
+expression: "\"\n    user first:\n\n    › Keep these words visible please\n\n\n    • Other speaker.\n    assistant first:\n\n    › Other speaker.\n\n\n    • Keep these words visible please\n    \""
+---
+
+    user first:
+
+    › Keep these words visible please
+
+
+    • Other speaker.
+    assistant first:
+
+    › Other speaker.
+
+
+    • Keep these words visible please

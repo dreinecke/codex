@@ -873,9 +873,13 @@ async fn command_center_new_restores_blank_drafts_and_builtin_permissions() -> R
         app.chat_widget.composer_text_with_pending(),
         "Keep this unsent draft"
     );
+    // Hushdex: skip the band's bar-only context row to reach the prompt row.
     insta::assert_snapshot!(
         crate::chatwidget::tests::helpers::render_bottom_popup(&app.chat_widget, /*width*/ 80)
-            .lines().next().unwrap(), @"› Keep this unsent draft");
+            .lines()
+            .find(|line| !line.trim_start_matches('▌').trim().is_empty())
+            .unwrap()
+    );
     // Seed persisted history without sending the user's draft. Subsequent navigation
     // must exercise thread/resume, including its restoration of permission settings.
     for id in [first, other] {

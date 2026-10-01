@@ -2367,7 +2367,7 @@ fn user_history_cell_wraps_long_urls_inside_the_message_gutter() {
             line.line
                 .spans
                 .first()
-                .is_some_and(|span| span.content == "  ")
+                .is_some_and(|span| span.content.starts_with("▌"))
         }),
         "wrapped URL rows must retain the user-message gutter: {linked_rows:?}"
     );
@@ -2526,7 +2526,8 @@ fn user_history_cell_trims_trailing_blank_message_lines() {
     let trailing_blank_count = rendered
         .iter()
         .rev()
-        .take_while(|line| line.trim().is_empty())
+        // Hushdex: the band frame row is blank once the bar prefix is stripped.
+        .take_while(|line| line.trim_start_matches('▌').trim().is_empty())
         .count();
     assert_eq!(trailing_blank_count, 1);
     assert!(rendered.iter().any(|line| line.contains("line one")));
@@ -2550,7 +2551,8 @@ fn user_history_cell_trims_trailing_blank_message_lines_with_text_elements() {
     let trailing_blank_count = rendered
         .iter()
         .rev()
-        .take_while(|line| line.trim().is_empty())
+        // Hushdex: the band frame row is blank once the bar prefix is stripped.
+        .take_while(|line| line.trim_start_matches('▌').trim().is_empty())
         .count();
     assert_eq!(trailing_blank_count, 1);
     assert!(rendered.iter().any(|line| line.contains("tokenized")));
@@ -2595,13 +2597,13 @@ fn render_uses_wrapping_for_long_url_like_line() {
     let rendered_blob = rendered.join("\n");
     let rendered_url = rendered
         .iter()
-        .filter(|row| !row.trim().is_empty())
+        .filter(|row| !row.trim_start_matches('▌').trim().is_empty())
         .enumerate()
         .map(|(index, row)| {
             if index == 0 {
-                row.strip_prefix("› ").unwrap().trim()
+                row.strip_prefix("▌ ").unwrap().trim()
             } else {
-                row.trim()
+                row.trim_start_matches('▌').trim()
             }
         })
         .collect::<String>();

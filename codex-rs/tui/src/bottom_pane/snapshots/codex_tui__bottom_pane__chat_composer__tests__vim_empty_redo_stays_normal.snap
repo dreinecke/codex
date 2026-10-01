@@ -1,14 +1,14 @@
 ---
 source: tui/src/bottom_pane/chat_composer.rs
-assertion_line: 5360
+assertion_line: 5313
 expression: terminal.backend()
 ---
-"                                                            "
-"› bc                                                        "
-"                                                            "
-"                                                            "
-"                                                            "
-"                                                            "
-"                                                            "
-"                                                            "
+"▌                                                           "
+"▌ bc                                                        "
+"▌                                                           "
+"▌                                                           "
+"▌                                                           "
+"▌                                                           "
+"▌                                                           "
+"▌                                                           "
 "                           100% context left | Vim: Normal  "

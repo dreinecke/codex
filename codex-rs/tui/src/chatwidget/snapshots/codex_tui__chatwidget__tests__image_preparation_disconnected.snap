@@ -1,5 +1,6 @@
 ---
 source: tui/src/chatwidget/tests/composer_submission.rs
+assertion_line: 2740
 expression: "normalize_snapshot_paths(render_bottom_popup(&chat, 80)).replace('◦', \"•\")"
 ---
 • Reconnect failed — check the endpoint, then relaunch (0s)
@@ -7,7 +8,7 @@ expression: "normalize_snapshot_paths(render_bottom_popup(&chat, 80)).replace('�
 • Queued follow-up inputs
   ↳ x
     shift+← edit last queued message
-
-› describe
-
+▌
+▌ describe
+▌
   ctrl+c quit

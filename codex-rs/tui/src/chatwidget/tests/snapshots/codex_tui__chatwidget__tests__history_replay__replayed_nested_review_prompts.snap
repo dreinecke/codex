@@ -1,18 +1,19 @@
 ---
 source: tui/src/chatwidget/tests/history_replay.rs
+assertion_line: 405
 expression: rendered
 ---
 >> Code review started: current changes <<
 
 << Code review finished >>
 
+▌ 
+▌ current changes
+▌ 
 
-› current changes
-
-
-
-› current changes
-
+▌ 
+▌ current changes
+▌ 
 
 ■ Conversation interrupted - use /feedback if something went wrong
 

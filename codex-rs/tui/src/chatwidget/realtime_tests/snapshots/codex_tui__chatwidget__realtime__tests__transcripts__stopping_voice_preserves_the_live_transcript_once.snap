@@ -1,0 +1,10 @@
+---
+source: tui/src/chatwidget/realtime_tests/transcripts.rs
+assertion_line: 466
+expression: "rendered.join(\"\\n\")"
+---
+▌ 
+▌ Earlier question
+▌ 
+• Earlier answer
+• Answer in progress

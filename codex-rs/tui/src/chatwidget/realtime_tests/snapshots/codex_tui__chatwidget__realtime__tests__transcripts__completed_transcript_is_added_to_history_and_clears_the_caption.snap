@@ -1,8 +1,9 @@
 ---
 source: tui/src/chatwidget/realtime_tests/transcripts.rs
-assertion_line: 218
+assertion_line: 683
 expression: "rendered.join(\"\\n\")"
 ---
 • Hello there
-
-› Can you hear me?
+▌ 
+▌ Can you hear me?
+▌

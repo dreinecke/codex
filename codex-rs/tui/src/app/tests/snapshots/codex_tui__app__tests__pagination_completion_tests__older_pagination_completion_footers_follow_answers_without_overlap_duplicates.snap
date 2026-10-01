@@ -1,5 +1,6 @@
 ---
 source: tui/src/app/tests/pagination_completion_tests.rs
+assertion_line: 181
 expression: "afternoon_clock.replace_all(&snapshots.join(\"\\n\\n--- next overlapping page ---\\n\\n\"),\n\"at 2:$1 PM\",)"
 ---
 Earlier messages are available — press ctrl+t to view the full transcript
@@ -9,17 +10,17 @@ Earlier messages are available — press ctrl+t to view the full transcript
 
 --- next overlapping page ---
 
-
-› Oldest prompt
-
+▌ 
+▌ Oldest prompt
+▌ 
 
 • Oldest answer
 
   Worked for 2m 5s • Sep 6, 2000 at 2:32 PM
 
-
-› Middle prompt
-
+▌ 
+▌ Middle prompt
+▌ 
 
 • Middle answer
 

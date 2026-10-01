@@ -1,11 +1,11 @@
 ---
 source: tui/src/focus_tests.rs
-assertion_line: 261
+assertion_line: 263
 expression: "render(&cells.all(), true)"
 ---
-
-› List the files in the current directory and summarize the build setup.
-
+▌ 
+▌ List the files in the current directory and summarize the build setup.
+▌ 
 
 • I will inspect the directory first, then report back.
 

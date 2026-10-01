@@ -1,9 +1,10 @@
 ---
 source: tui/src/bottom_pane/chat_composer.rs
+assertion_line: 9630
 expression: terminal.backend()
 ---
 "› /btw  start a side conversation in an ephemeral fork      "
-"                                                            "
-"› /bt                                                       "
-"                                                            "
+"▌                                                           "
+"▌ /bt                                                       "
+"▌                                                           "
 "                                         100% context left  "

@@ -3,8 +3,7 @@
 
 use super::markdown_render_cache::MarkdownRenderCache;
 use super::*;
-use crate::style::accent_color_on;
-use crate::style::history_prompt_style;
+
 use crate::terminal_hyperlinks::annotate_web_urls;
 use crate::terminal_hyperlinks::lines_with_sources_eq;
 use crate::terminal_hyperlinks::remap_source_wrapped_line;
@@ -199,8 +198,8 @@ impl HistoryCell for UserHistoryCell {
             )
             .max(/*other*/ 1);
 
-        let style = history_prompt_style();
-        let element_style = style.fg(accent_color_on(style.bg));
+        let style = crate::user_band::user_band_fill();
+        let element_style = style.fg(crate::style::deterministic_accent_on(style.bg));
 
         let wrapped_images = plain_hyperlink_lines(adaptive_wrap_lines(
             self.image_labels_not_in_message()
@@ -218,10 +217,12 @@ impl HistoryCell for UserHistoryCell {
         let mut lines = vec![HyperlinkLine::new(Line::from("").style(style))];
 
         if !wrapped_images.is_empty() {
+            // Hushdex: the user band's bar prefix frames every row of the block.
+            let bar = crate::user_band::bar_prefix_span(style, self.spoken);
             lines.extend(prefix_hyperlink_lines(
                 wrapped_images,
-                "  ".into(),
-                "  ".into(),
+                bar.clone(),
+                bar.clone(),
             ));
             if wrapped_message.is_some() {
                 lines.push(HyperlinkLine::new(Line::from("").style(style)));
@@ -229,18 +230,14 @@ impl HistoryCell for UserHistoryCell {
         }
 
         if let Some(wrapped_message) = wrapped_message {
-            lines.extend(prefix_hyperlink_lines(
-                wrapped_message,
-                if self.spoken {
-                    "› ".red().bold()
-                } else {
-                    "› ".bold().dim()
-                },
-                "  ".into(),
-            ));
+            // Hushdex: the accent bar replaces the "›" chevron; spoken prompts keep their
+            // distinct marker through the bar color.
+            let bar = crate::user_band::bar_prefix_span(style, self.spoken);
+            lines.extend(prefix_hyperlink_lines(wrapped_message, bar.clone(), bar));
         }
 
         lines.push(HyperlinkLine::new(Line::from("").style(style)));
+        let mut lines = crate::user_band::apply_user_band(lines, style, self.spoken);
         for source in lines.iter_mut().filter_map(|line| line.source.as_mut()) {
             source.right_reserve = 1;
             source.copy_as_prose = true;
@@ -273,7 +270,7 @@ fn wrap_user_message(
     style: Style,
     wrap_width: u16,
 ) -> Option<Vec<HyperlinkLine>> {
-    let element_style = style.fg(accent_color_on(style.bg));
+    let element_style = style.fg(crate::style::deterministic_accent_on(style.bg));
     if message.is_empty() && text_elements.is_empty() {
         return None;
     }

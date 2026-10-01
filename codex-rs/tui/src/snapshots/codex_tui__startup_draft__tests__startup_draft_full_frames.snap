@@ -10,9 +10,9 @@ empty (48 columns):
 
   Pull up a prompt.
 
-
-› Ask Codex to do anything
-
+▌
+▌ Ask Codex to do anything
+▌
   ? for shortcuts
 ---
 resuming (48 columns):
@@ -20,9 +20,9 @@ resuming (48 columns):
   >_ OpenAI Codex (v<VERSION>)
      loading
   Resuming session…
-
-› Ask Codex to do anything
-
+▌
+▌ Ask Codex to do anything
+▌
   ? for shortcuts
 ---
 forking (48 columns):
@@ -30,9 +30,9 @@ forking (48 columns):
   >_ OpenAI Codex (v<VERSION>)
      loading
   Forking session…
-
-› draft while loading
-
+▌
+▌ draft while loading
+▌
 
 ---
 multiline (48 columns):
@@ -42,10 +42,10 @@ multiline (48 columns):
 
   Pull up a prompt.
 
-
-› first startup line
-  second startup line
-
+▌
+▌ first startup line
+▌ second startup line
+▌
 
 ---
 narrow (18 columns):
@@ -55,8 +55,9 @@ narrow (18 columns):
 
   Pull up a promp…
 
-
-› first startup
-  line
-  second startup
-  line
+▌
+▌ first startup
+▌ line
+▌ second startup
+▌ line
+▌

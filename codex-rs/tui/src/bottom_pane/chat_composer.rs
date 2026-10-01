@@ -11,6 +11,8 @@
 //! loss cancels the pending paste; a late clipboard result cannot overwrite newer input.
 //! The live voice strip renders after effort ignition, followed by the Astra sparkle when eligible.
 //! Owned transcripts keep persistent status below the composer and hints on a separate final row.
+//! The composer frame renders as the user band: a tinted fill with an accent bar down its left
+//! edge, matching how submitted prompts appear in history.
 //! Shortcut help expands above the composer, with its close hint replacing the final shortcuts row
 //! so input and persistent status stay anchored when help opens or closes.
 //! Escape dismisses visible shortcut help before editing, transcript backtracking, or interruption.
@@ -4923,8 +4925,15 @@ impl ChatComposer {
         if let Some((warning_area, line)) = warning_notice {
             line.render(warning_area, buf);
         }
-        let style = user_message_style();
+        // Hushdex: the composer frame renders as the user band — tinted fill with an accent
+        // bar down the left edge — matching submitted prompts, with a dark-terminal fallback
+        // so the band stays visible when no background color is reported.
+        let style = crate::user_band::composer_fill();
         Block::default().style(style).render(composer_rect, buf);
+        let bar = crate::user_band::bar_span(style, /*spoken*/ false);
+        for y in composer_rect.top()..composer_rect.bottom() {
+            buf.set_span(composer_rect.x, y, &bar, 1);
+        }
         if !remote_images_rect.is_empty() {
             Paragraph::new(self.attachments.remote_image_lines())
                 .style(style)
@@ -4947,7 +4956,9 @@ impl ChatComposer {
                         .unwrap_or(1.0);
                     tier.prompt(charge)
                 } else {
-                    "›".bold()
+                    // Hushdex: the plain-state prompt glyph is the user band's accent bar;
+                    // state variants (bash `!`, Luna, effort tiers) still draw in its place.
+                    crate::user_band::bar_span(style, /*spoken*/ false)
                 }
             } else {
                 "›".dim()
@@ -5186,8 +5197,9 @@ mod tests {
         );
 
         let spacing_row = row_to_string(hint_row_idx - 1);
+        // Hushdex: the composer band paints its bar on otherwise blank rows.
         assert_eq!(
-            spacing_row.trim(),
+            spacing_row.trim_start_matches('▌').trim(),
             "",
             "expected blank spacing row above hints but saw: {spacing_row:?}",
         );

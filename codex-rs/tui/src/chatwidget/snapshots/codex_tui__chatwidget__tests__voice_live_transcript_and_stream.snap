@@ -1,17 +1,18 @@
 ---
 source: tui/src/chatwidget/tests/status_and_layout.rs
-expression: rendered
+assertion_line: 39
+expression: normalized_backend_snapshot(terminal.backend())
 ---
 "                                                            "
 "• Agent answer arriving                                     "
 "                                                            "
+"▌                                                           "
+"▌ pick a number                                             "
+"▌                                                           "
 "                                                            "
-"› pick a number                                             "
-"                                                            "
-"                                                            "
-"                                                            "
-" voice ● listening              ctrl+x mute     /voice stop "
-"                                                            "
-"› Ask Codex to do anything                                  "
-"                                                            "
+"▌                                                           "
+"▌voice ● listening              ctrl+x mute     /voice stop "
+"▌                                                           "
+"▌ Ask Codex to do anything                                  "
+"▌                                                           "
 "  GPT-5.6-Sol default · /tmp/project                        "
