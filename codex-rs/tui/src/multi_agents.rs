@@ -4,6 +4,7 @@
 //! picker entries, and the fast-switch keyboard shortcuts. Higher-level coordination, such as
 //! deciding which thread becomes active or when a thread closes, stays in [`crate::app::App`].
 
+use crate::history_cell::HistoryCell;
 use crate::history_cell::PlainHistoryCell;
 use crate::render::line_utils::prefix_lines;
 use crate::style::accent_color;
@@ -306,17 +307,22 @@ pub(crate) fn sub_agent_activity_display(item: &ThreadItem) -> Option<SubAgentAc
     })
 }
 
-pub(crate) fn sub_agent_activity_history_cell(item: &ThreadItem) -> Option<PlainHistoryCell> {
+pub(crate) fn sub_agent_activity_history_cell(item: &ThreadItem) -> Option<Box<dyn HistoryCell>> {
     let ThreadItem::SubAgentActivity {
         kind, agent_path, ..
     } = item
     else {
         return None;
     };
-    Some(collab_event(
-        sub_agent_activity_title(*kind, agent_path),
-        Vec::new(),
-    ))
+    // Hushdex: normal-case lifecycle telemetry is hidden in focus mode; `Interrupted` stays
+    // visible because an interrupted agent is a failure signal.
+    let hidden = !matches!(kind, SubAgentActivityKind::Interrupted);
+    let cell = collab_event(sub_agent_activity_title(*kind, agent_path), Vec::new());
+    Some(if hidden {
+        Box::new(crate::focus::FocusHiddenHistoryCell(cell))
+    } else {
+        Box::new(cell)
+    })
 }
 
 fn sub_agent_activity_title(kind: SubAgentActivityKind, agent_path: &str) -> Line<'static> {

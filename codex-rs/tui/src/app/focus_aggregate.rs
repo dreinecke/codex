@@ -175,13 +175,25 @@ pub(super) fn absorb_into_focus_aggregate(
 
 /// Index of the aggregate cell ending the current run, if any.
 ///
-/// Hidden reasoning cells do not interrupt a run; the first visible non-aggregate cell does.
+/// Hidden cells, stream-continuation fragments, and hidden lifecycle telemetry do not interrupt
+/// a run; the first visible non-aggregate cell does.
 fn trailing_aggregate_index(app: &App) -> Option<usize> {
     for (index, cell) in app.transcript_cells.iter().enumerate().rev().take(/*n*/ 4) {
         if cell.as_any().downcast_ref::<FocusAggregateCell>().is_some() {
             return Some(index);
         }
-        cell.as_any().downcast_ref::<ReasoningSummaryCell>()?;
+        let interrupts_run = !cell.is_stream_continuation()
+            && cell
+                .as_any()
+                .downcast_ref::<crate::focus::FocusHiddenHistoryCell>()
+                .is_none()
+            && cell
+                .as_any()
+                .downcast_ref::<ReasoningSummaryCell>()
+                .is_none();
+        if interrupts_run {
+            return None;
+        }
     }
     None
 }

@@ -22,7 +22,7 @@ use ratatui::text::Line;
 /// Identity of this Hushdex build: the date and sequence of fork changes that day.
 /// Bump this in every fork commit that changes behavior; it prints in the `/focus` notice so a
 /// running session can identify itself (`hushdex --version` only reports the upstream number).
-pub(crate) const HUSHDEX_BUILD: &str = "2026-09-30.5";
+pub(crate) const HUSHDEX_BUILD: &str = "2026-10-01.1";
 
 /// Whether new sessions start with focus mode on.
 ///
@@ -95,6 +95,40 @@ impl App {
 /// Empty scrollback rendering for `hidden` cells.
 pub(crate) fn hidden_focus_lines() -> Vec<Line<'static>> {
     Vec::new()
+}
+
+/// Wraps background lifecycle telemetry (sub-agent Started/Interacted/Completed events) whose
+/// focus rendering is suppressed: normal-case lifecycle state carries no decision-relevant
+/// signal. Focus mode renders nothing; failures stay visible because `Interrupted` events and
+/// error cells are never wrapped. The transcript pager, raw mode, and focus-off keep the full
+/// presentation via delegation.
+#[derive(Debug)]
+pub(crate) struct FocusHiddenHistoryCell(pub(crate) crate::history_cell::PlainHistoryCell);
+
+impl HistoryCell for FocusHiddenHistoryCell {
+    fn focus_lines(&self, _width: u16) -> Vec<Line<'static>> {
+        hidden_focus_lines()
+    }
+
+    fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
+        self.0.display_lines(width)
+    }
+
+    fn display_hyperlink_lines(&self, width: u16) -> Vec<HyperlinkLine> {
+        self.0.display_hyperlink_lines(width)
+    }
+
+    fn transcript_lines(&self, width: u16) -> Vec<Line<'static>> {
+        self.0.transcript_lines(width)
+    }
+
+    fn transcript_hyperlink_lines(&self, width: u16) -> Vec<HyperlinkLine> {
+        self.0.transcript_hyperlink_lines(width)
+    }
+
+    fn raw_lines(&self) -> Vec<Line<'static>> {
+        self.0.raw_lines()
+    }
 }
 
 #[cfg(test)]
