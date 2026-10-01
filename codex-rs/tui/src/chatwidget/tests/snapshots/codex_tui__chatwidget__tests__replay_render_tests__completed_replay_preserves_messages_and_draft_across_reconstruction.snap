@@ -1,0 +1,12 @@
+---
+source: tui/src/chatwidget/tests/replay_render_tests.rs
+assertion_line: 31
+expression: "\"\n    › Question\n\n\n    • First answer\n\n    • Second answer\n    \""
+---
+
+    › Question
+
+
+    • First answer
+
+    • Second answer

@@ -1,10 +1,11 @@
 ---
 source: tui/src/chatwidget/tests/luna_reserve_usage_tests.rs
+assertion_line: 213
 expression: rendered
 ---
 • Working (0s • esc to interrupt)
 
-
+▌
 › x
-
+▌
   tab to queue message                                       100% context left

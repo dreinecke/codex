@@ -1,9 +1,10 @@
 ---
 source: tui/src/chatwidget/tests/side.rs
+assertion_line: 430
 expression: terminal.backend()
 ---
 "                                                                                "
-"                                                                                "
-"› Ask a follow-up question                                                      "
-"                                                                                "
+"▌                                                                               "
+"▌ Ask a follow-up question                                                      "
+"▌                                                                               "
 " Side from main thread · main needs input · ctrl+/ to switch · ctrl+c to close  "

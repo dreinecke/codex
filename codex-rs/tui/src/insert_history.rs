@@ -927,19 +927,20 @@ mod tests {
         let message_rows = rows
             .iter()
             .enumerate()
-            .filter(|(_, row)| !row.trim().is_empty())
+            // Hushdex: bar-only band frame rows count as blank.
+            .filter(|(_, row)| !row.trim_start_matches('▌').trim().is_empty())
             .collect::<Vec<_>>();
 
         assert!(message_rows.len() > 1, "expected wrapped URL: {rows:?}");
         assert!(
-            message_rows[0].1.starts_with("› "),
+            message_rows[0].1.starts_with("▌ "),
             "the first user-message row must retain its prompt: {rows:?}"
         );
         assert!(
             message_rows
                 .iter()
                 .skip(/*n*/ 1)
-                .all(|(_, row)| row.starts_with("  ")),
+                .all(|(_, row)| row.starts_with("▌ ")),
             "all wrapped URL rows must preserve the message gutter: {rows:?}"
         );
         assert_eq!(
@@ -948,9 +949,9 @@ mod tests {
                 .enumerate()
                 .map(|(index, (_, row))| {
                     if index == 0 {
-                        row.strip_prefix("› ").unwrap().trim()
+                        row.strip_prefix("▌ ").unwrap().trim()
                     } else {
-                        row.trim()
+                        row.trim_start_matches('▌').trim()
                     }
                 })
                 .collect::<String>(),

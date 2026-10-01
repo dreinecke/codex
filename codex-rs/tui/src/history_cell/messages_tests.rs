@@ -142,31 +142,32 @@ fn sanitizer_preallocates_owned_multi_fragment_text() {
 }
 
 #[test]
-fn spoken_user_messages_have_a_red_chevron_without_changing_raw_text() {
+fn spoken_user_messages_have_a_red_bar_without_changing_raw_text() {
     let message = "  hello from voice";
     let spoken = new_spoken_user_prompt(message.to_string());
     let typed = new_user_prompt(message.to_string(), Vec::new(), Vec::new(), Vec::new());
+    // Hushdex: the user band's accent bar replaces the "›" chevron; spoken prompts keep a
+    // red bar while typed prompts use the accent color.
     let marker = spoken
         .display_hyperlink_lines(/*width*/ 40)
         .into_iter()
         .flat_map(|line| line.line.spans)
-        .find(|span| span.content == "› ")
-        .expect("spoken user marker");
+        .find(|span| span.content.starts_with("▌"))
+        .expect("spoken user bar");
 
     assert!(
         spoken
             .display_lines(/*width*/ 40)
             .iter()
-            .any(|line| line.to_string() == "› hello from voice")
+            .any(|line| line.to_string().trim_end() == "▌ hello from voice")
     );
     assert!(
         typed
             .display_lines(/*width*/ 40)
             .iter()
-            .any(|line| { line.to_string() == "›   hello from voice" })
+            .any(|line| { line.to_string().trim_end() == "▌   hello from voice" })
     );
-    assert_eq!(marker.style.fg, Some(Color::Red));
-    assert!(marker.style.add_modifier.contains(Modifier::BOLD));
+    assert_eq!(marker.style.fg, Some(Color::LightRed));
     assert_eq!(spoken.raw_lines(), vec![Line::from(message)]);
     assert_eq!(
         spoken.display_lines_for_mode(/*width*/ 40, HistoryRenderMode::Raw),
@@ -175,7 +176,7 @@ fn spoken_user_messages_have_a_red_chevron_without_changing_raw_text() {
     assert!(typed.display_lines(/*width*/ 40).iter().any(|line| {
         line.spans
             .iter()
-            .any(|span| span.content == "› " && span.style.fg != Some(Color::Red))
+            .any(|span| span.content.starts_with("▌") && span.style.fg != Some(Color::LightRed))
     }));
 
     let area = Rect::new(

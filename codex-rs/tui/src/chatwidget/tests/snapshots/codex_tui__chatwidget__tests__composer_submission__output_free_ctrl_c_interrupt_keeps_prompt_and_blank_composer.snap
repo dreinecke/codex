@@ -1,11 +1,12 @@
 ---
 source: tui/src/chatwidget/tests/composer_submission.rs
+assertion_line: 1732
 expression: "format!(\"history:\\n{interrupted_history}\\ncomposer:\\n{}\",\nchat.bottom_pane.composer_text())"
 ---
 history:
-
-› revise this prompt
-
+▌ 
+▌ revise this prompt
+▌ 
 
 ■ Conversation interrupted - use /feedback if something went wrong
 

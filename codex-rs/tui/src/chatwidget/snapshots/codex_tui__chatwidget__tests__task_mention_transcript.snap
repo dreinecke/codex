@@ -1,5 +1,8 @@
 ---
 source: tui/src/chatwidget/tests/composer_submission.rs
+assertion_line: 2253
 expression: rendered
 ---
-› Inspect @Review database migration
+▌ 
+▌ Inspect @Review database migration
+▌

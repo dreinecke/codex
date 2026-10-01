@@ -1,12 +1,14 @@
 ---
 source: tui/src/app/tests/fresh_sparkle_tests.rs
+assertion_line: 570
 expression: "snapshots.join(\"\\n\\n\")"
 ---
 default no-op:
-› Ask Codex to do anything
-
+▌
+▌ Ask Codex to do anything
+▌
 
 default changes model:
-                            ⠈     ⢀     ⠁                 ⠂
-›⠁Ask Codex to do anything         ⠈      ⠁
-       ⢀            ⠠     ⠄         ⠠          ⢀    ⠠     ⡀
+▌                           ⠈     ⢀     ⠁                 ⠂
+▌⠁Ask Codex to do anything         ⠈      ⠁
+▌      ⢀            ⠠     ⠄         ⠠          ⢀    ⠠     ⡀

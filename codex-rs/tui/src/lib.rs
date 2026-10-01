@@ -163,6 +163,7 @@ mod inline_visualization;
 pub(crate) mod insert_history;
 mod managed_worktree_tool_specs;
 mod managed_worktree_tools;
+mod user_band;
 pub use insert_history::insert_history_lines;
 mod footer_hint;
 mod key_hint;

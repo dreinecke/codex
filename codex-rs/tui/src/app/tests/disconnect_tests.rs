@@ -155,7 +155,7 @@ async fn lost_mutation_reply_preserves_work_without_resubmitting() -> Result<()>
     );
     let rendered = render_bottom_popup(&app.chat_widget, /*width*/ 80);
     let draft = rendered
-        .split_once("› ")
+        .split_once("▌ ")
         .unwrap()
         .1
         .split("\n\n")

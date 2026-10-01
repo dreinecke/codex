@@ -1,5 +1,6 @@
 ---
 source: tui/src/bottom_pane/chat_composer/status_surface_tests.rs
+assertion_line: 385
 expression: "snapshots.join(\"\\n---\\n\")"
 ---
 "f4"
@@ -24,9 +25,9 @@ expression: "snapshots.join(\"\\n---\\n\")"
   esc esc  Edit last message
 
   /keymap customize
-
-› Ask Codex
-
+▌
+▌ Ask Codex
+▌
   MODEL · ~/project · Context 20% used
   ? / esc close
 ---
@@ -52,9 +53,9 @@ expression: "snapshots.join(\"\\n---\\n\")"
   esc esc  Edit last message
 
   /keymap customize
-
-› Ask Codex
-
+▌
+▌ Ask Codex
+▌
   MODEL · ~/project · Context 20% used
   ? / esc close
 ---
@@ -80,8 +81,8 @@ expression: "snapshots.join(\"\\n---\\n\")"
   esc esc  Edit last message
 
   /keymap customize
-
-› Ask Codex
-
+▌
+▌ Ask Codex
+▌
   MODEL · ~/project · Context 20% used
   ? / esc close

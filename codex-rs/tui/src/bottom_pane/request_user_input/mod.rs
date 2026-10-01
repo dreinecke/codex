@@ -3811,14 +3811,14 @@ mod tests {
 
         insta::assert_snapshot!(snapshot, @"
 
-        Question 1/1 (1 unanswered)
-        Share details.
-
-        › Type your answer (optional)
-
-
-
-        ⌃x enter to submit answer | esc to interrupt
+          Question 1/1 (1 unanswered)
+          Share details.
+          ▌
+          ▌ Type your answer (optional)
+          ▌
+          ▌
+          ▌
+          ⌃x enter to submit answer | esc to interrupt
         ");
     }
 

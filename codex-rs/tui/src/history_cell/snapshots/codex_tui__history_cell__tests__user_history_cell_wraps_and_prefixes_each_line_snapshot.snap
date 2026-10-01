@@ -1,6 +1,9 @@
 ---
 source: tui/src/history_cell/tests.rs
+assertion_line: 2335
 expression: rendered
 ---
-› _count_ro
-  ws
+▌ 
+▌ _count_ro
+▌ ws
+▌

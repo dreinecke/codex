@@ -73,10 +73,35 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/multi_agents.rs` | Wrap normal sub-agent lifecycle events in the focus-hidden decorator (+9 lines). |
 | `codex-rs/tui/src/chatwidget/tool_lifecycle.rs` | `on_collab_event` takes a boxed cell (+2 lines). |
 | `codex-rs/tui/src/thread_transcript/other_items.rs` | Adapt to the boxed lifecycle cell (+1 line). |
+| `codex-rs/tui/src/history_cell/messages.rs` | User prompts render as the accented user band: bar prefix spans replace the `›` chevron, guaranteed fill, band framing via `user_band` (+12 lines). |
+| `codex-rs/tui/src/style.rs` | `deterministic_accent_on` pins the color level so the band renders identically under every test runner (+20 lines). |
+| `codex-rs/tui/src/transcript_view/prompt_header.rs` | The pinned prompt header mirrors the banded prompt instead of its own chevron (+4 lines). |
+| `codex-rs/tui/src/bottom_pane/chat_composer.rs` | Composer frame renders as the user band: fill fallback plus an accent bar down `composer_rect`'s left edge; the plain-state prompt glyph is the bar itself (+10 lines, doc line updated per bottom-pane AGENTS). |
 | `codex-rs/tui/BUILD.bazel` | Declare `focus_allowlist.toml` as compile data for `include_str!`. |
 
 New files (fork-owned): `codex-rs/tui/src/focus.rs`, `codex-rs/tui/src/focus_summaries.rs`,
 `codex-rs/tui/src/focus_tests.rs`, `codex-rs/tui/src/app/focus_aggregate.rs`,
+`codex-rs/tui/src/user_band.rs` (accented user band for prompts and the composer),
+
+Upstream test adjustments (assertion wording only, same intent): `history_cell/messages_tests.rs`
+and `history_cell/tests.rs` (bar prefix replaces the chevron/gutter; band frame rows count as
+blank once the bar is stripped), `insert_history.rs` tests (same), `chatwidget/realtime_tests/transcripts.rs`
+(spoken marker is the red bar), `app/tests/new_session_tests.rs` (composer window widened by one
+banded context row), plus inline-snapshot updates in `agents_overview_tests.rs`,
+`background_task_defaults_tests.rs`, `key_chords.rs`, `startup_defaults_tests.rs`,
+`turn_submission.rs`, `disconnect_tests.rs`, `request_user_input/mod.rs`,
+`recording_controls_tests.rs`, and `replay_render_tests.rs`.
+
+Testing notes:
+- Band snapshots were converged under the canonical runner (`just test`, i.e. nextest, one
+  process per test). `cargo test --lib` (threaded) can flake on band-bearing snapshots because
+  `with_test_default_colors` leaves a sticky thread-local on pooled test threads, changing
+  fills for tests that do not declare colors; nextest is unaffected and is what CI runs.
+- `deterministic_accent_on` in `style.rs` pins the band bar's color level for the same reason.
+- Full parallel runs on a loaded machine flake a large app-server/PTY family at baseline
+  (816 failures at the pre-band HEAD in identical conditions); run affected modules scoped.
+
+
 `codex-rs/tui/src/app/focus_aggregate_tests.rs`,
 `codex-rs/tui/src/transcript_view/focus_layout_tests.rs`,
 `codex-rs/tui/focus_allowlist.toml`,
@@ -107,6 +132,7 @@ type is missing, stale, lacks an override, or if the user/agent message types ar
 | --- | --- |
 | `ReasoningSummaryCell` | Nothing in scrollback (matches upstream's completed-reasoning behavior; the transcript pager still shows it). |
 | `FocusHiddenHistoryCell` | The lifecycle-telemetry wrapper (fork-owned): sub-agent `Started`/`Interacted with`/`Completed` events render nothing in focus mode — normal-case lifecycle state carries no signal. `Interrupted` stays visible; the pager and focus-off keep everything. |
+| `UserHistoryCell` | Full, rendered as the user band (fork-owned `user_band` module): an accent `▌` bar down the left edge of every row (spoken prompts use a red bar instead of the old red chevron) and a full-width tint fill. Agent messages render with no background, so user content is visually distinct. |
 | `FocusAggregateCell` | The run-aggregation cell (fork-owned): one dim Claude-Code-style line, e.g. `Searched for 2 patterns, read 5 files, edited 3 files, called 1 tool, ran 9 shell commands`. |
 
 ### `full` (render unchanged; no `focus_lines` override needed)
