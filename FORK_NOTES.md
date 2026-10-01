@@ -70,6 +70,9 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/chatwidget/slash_dispatch.rs` | `SlashCommand::Focus` arm (toggle + notice). |
 | `codex-rs/tui/src/bottom_pane/chat_composer.rs` | Allow `/focus` while viewing a parent-owned child thread (+1 line). |
 | `codex-rs/tui/src/bottom_pane/slash_commands.rs` | Add `Focus` to the side-conversation command-list test (+1 line). |
+| `codex-rs/tui/src/multi_agents.rs` | Wrap normal sub-agent lifecycle events in the focus-hidden decorator (+9 lines). |
+| `codex-rs/tui/src/chatwidget/tool_lifecycle.rs` | `on_collab_event` takes a boxed cell (+2 lines). |
+| `codex-rs/tui/src/thread_transcript/other_items.rs` | Adapt to the boxed lifecycle cell (+1 line). |
 | `codex-rs/tui/BUILD.bazel` | Declare `focus_allowlist.toml` as compile data for `include_str!`. |
 
 New files (fork-owned): `codex-rs/tui/src/focus.rs`, `codex-rs/tui/src/focus_summaries.rs`,
@@ -103,6 +106,7 @@ type is missing, stale, lacks an override, or if the user/agent message types ar
 | Type | Focus rendering |
 | --- | --- |
 | `ReasoningSummaryCell` | Nothing in scrollback (matches upstream's completed-reasoning behavior; the transcript pager still shows it). |
+| `FocusHiddenHistoryCell` | The lifecycle-telemetry wrapper (fork-owned): sub-agent `Started`/`Interacted with`/`Completed` events render nothing in focus mode — normal-case lifecycle state carries no signal. `Interrupted` stays visible; the pager and focus-off keep everything. |
 | `FocusAggregateCell` | The run-aggregation cell (fork-owned): one dim Claude-Code-style line, e.g. `Searched for 2 patterns, read 5 files, edited 3 files, called 1 tool, ran 9 shell commands`. |
 
 ### `full` (render unchanged; no `focus_lines` override needed)
@@ -155,7 +159,8 @@ condensed).
   the run and render normally; hidden reasoning cells do not interrupt it. The `Ctrl+T` pager
   receives every original cell, and turning focus off expands aggregates back to the full
   presentations. Aggregates do not survive session resume (rebuilt transcripts render per-cell
-  summaries).
+  summaries). Stream-continuation fragments and focus-hidden cells do not close a run, so a
+  message streamed in fragments or interleaved lifecycle telemetry keeps one aggregate line.
 - Raw output mode (`/raw`) wins over focus mode: raw mode is for verbatim terminal selection, so
   focus condensation is suspended while it is active.
 - The live viewport (in-progress cells) keeps its normal rendering; the one-line summaries apply

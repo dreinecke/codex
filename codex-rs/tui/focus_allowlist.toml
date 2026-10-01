@@ -19,6 +19,7 @@
 "ExecCell" = "summary"
 "FinalMessageSeparator" = "full"
 "FocusAggregateCell" = "summary"
+"FocusHiddenHistoryCell" = "hidden"
 "HookCell" = "full"
 "McpInventoryLoadingCell" = "full"
 "McpToolCallCell" = "summary"

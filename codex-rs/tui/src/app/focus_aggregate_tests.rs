@@ -446,3 +446,76 @@ async fn prompts_and_patches_aggregate_by_category() {
         .collect::<String>();
     assert_eq!(aggregate_text, "Edited 2 files, called 1 tool");
 }
+
+#[tokio::test]
+async fn hidden_lifecycle_and_stream_fragments_do_not_break_runs() {
+    let (mut app, _events, _ops) = crate::app::tests::make_test_app_with_channels().await;
+    let mut tui = crate::tui::test_support::make_test_tui().expect("test tui");
+    app.chat_widget.set_focus_mode(true);
+
+    app.insert_history_cell(
+        &mut tui,
+        Box::new(exec_cell(
+            "one",
+            "cargo build",
+            vec![ParsedCommand::Unknown {
+                cmd: "cargo build".to_string(),
+            }],
+            /*exit_code*/ 0,
+        )),
+    );
+    // Sub-agent lifecycle telemetry (Started/Interacted/Completed) is hidden in focus mode.
+    app.insert_history_cell(
+        &mut tui,
+        Box::new(crate::focus::FocusHiddenHistoryCell(
+            crate::history_cell::PlainHistoryCell::new(vec![Line::from("Started `/root/s279_a`")]),
+        )),
+    );
+    // A stream-continuation fragment of an in-flight agent message also does not close a run.
+    app.insert_history_cell(
+        &mut tui,
+        Box::new(AgentMessageCell::new(
+            vec![Line::from("mid-stream fragment")],
+            /*is_first_line*/ false,
+        )),
+    );
+    app.insert_history_cell(
+        &mut tui,
+        Box::new(exec_cell(
+            "two",
+            "cargo test",
+            vec![ParsedCommand::Unknown {
+                cmd: "cargo test".to_string(),
+            }],
+            /*exit_code*/ 0,
+        )),
+    );
+
+    assert_eq!(
+        tail_text(&app),
+        "Ran 2 shell commands",
+        "hidden telemetry and stream fragments keep the run open"
+    );
+    let text = pending_text(&tui) + &tail_text(&app);
+    assert!(
+        !text.contains("Started"),
+        "lifecycle telemetry stays hidden in focus mode:\n{text}"
+    );
+}
+
+#[test]
+fn hidden_lifecycle_wrapper_delegates_full_presentations() {
+    let wrapper =
+        crate::focus::FocusHiddenHistoryCell(crate::history_cell::PlainHistoryCell::new(vec![
+            Line::from("Completed `/root/x`"),
+        ]));
+    assert!(wrapper.focus_lines(/*width*/ 80).is_empty());
+    assert!(
+        !wrapper.display_lines(/*width*/ 80).is_empty(),
+        "focus off renders the event"
+    );
+    assert!(
+        !wrapper.transcript_lines(/*width*/ 80).is_empty(),
+        "the pager keeps the event"
+    );
+}
