@@ -74,6 +74,7 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/chatwidget/tool_lifecycle.rs` | `on_collab_event` takes a boxed cell (+2 lines). |
 | `codex-rs/tui/src/thread_transcript/other_items.rs` | Adapt to the boxed lifecycle cell (+1 line). |
 | `codex-rs/tui/src/history_cell/messages.rs` | User prompts render as the accented user band: bar prefix spans replace the `›` chevron, guaranteed fill, band framing via `user_band` (+12 lines). |
+| `codex-rs/tui/src/focus_summaries.rs` | Summary lines (`• Ran`, `• Called`, `• Edited`, aggregates like `Read 3 files, ran 1 shell command`) render dimmed to the working-status indicator's level; the modifier is applied per span at the shared builders (`clipped`, `aggregate_line`, `first_display_line`) because line-level styles do not survive wrapping. Failures and user-shell output bypass the builders and stay full brightness. |
 | `codex-rs/tui/src/style.rs` | `deterministic_accent_on` pins the color level so the band renders identically under every test runner (+20 lines). |
 | `codex-rs/tui/src/transcript_view/prompt_header.rs` | The pinned prompt header mirrors the banded prompt instead of its own chevron (+4 lines). |
 | `codex-rs/tui/src/bottom_pane/chat_composer.rs` | Composer frame renders as the user band: fill fallback plus an accent bar down `composer_rect`'s left edge; the plain-state prompt glyph is the bar itself (+10 lines, doc line updated per bottom-pane AGENTS). |

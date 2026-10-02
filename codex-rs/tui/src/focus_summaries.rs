@@ -23,6 +23,7 @@ use crate::line_truncation::truncate_line_with_ellipsis_if_overflow;
 use crate::render::highlight::highlight_bash_to_lines;
 use codex_app_server_protocol::CommandExecutionSource;
 use codex_protocol::parse_command::ParsedCommand;
+use ratatui::style::Modifier;
 use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::text::Span;
@@ -30,8 +31,21 @@ use ratatui::text::Span;
 /// Maximum per-file lines before a patch summary collapses the remainder.
 const PATCH_FILE_SUMMARY_LIMIT: usize = 5;
 
+/// Focus summaries render at the same muted level as the working-status indicator, so tool
+/// activity reads as ambient rather than competing with agent messages. The dim modifier is
+/// applied per span because line-level styles do not survive the transcript's wrapping
+/// pipeline; failures and user-shell output bypass the summary builders and stay full
+/// brightness.
+fn mute(line: Line<'static>) -> Line<'static> {
+    let mut line = line;
+    for span in &mut line.spans {
+        span.style = span.style.add_modifier(Modifier::DIM);
+    }
+    line
+}
+
 fn clipped(line: Line<'static>, width: u16) -> Line<'static> {
-    truncate_line_with_ellipsis_if_overflow(line, usize::from(width.max(1)))
+    truncate_line_with_ellipsis_if_overflow(mute(line), usize::from(width.max(1)))
 }
 
 fn label_line(
@@ -210,7 +224,7 @@ pub(crate) fn aggregate_line(counts: &FocusActivityCounts) -> Line<'static> {
     {
         text = first.to_uppercase().collect::<String>() + characters.as_str();
     }
-    Line::from(text).dim()
+    mute(Line::from(text))
 }
 
 /// `• Ran <command>` per call (or `• Running <command>` while a call is in flight).
@@ -304,7 +318,7 @@ pub(crate) fn computer_activity_focus_lines(
 
 /// Keep only the first line of the full presentation for already one-line tool cells.
 pub(crate) fn first_display_line(lines: Vec<Line<'static>>) -> Vec<Line<'static>> {
-    lines.into_iter().take(/*n*/ 1).collect()
+    lines.into_iter().take(/*n*/ 1).map(mute).collect()
 }
 
 /// `• Edited <path> (+A -D)` per file, with `Added`/`Deleted` for new or removed files.
@@ -380,3 +394,7 @@ fn patch_file_line(path: &Path, change: &FileChange, cwd: &Path, width: u16) -> 
         }
     }
 }
+
+#[cfg(test)]
+#[path = "focus_summaries_tests.rs"]
+mod tests;
