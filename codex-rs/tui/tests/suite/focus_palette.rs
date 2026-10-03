@@ -538,6 +538,10 @@ impl PtyCodex {
         bail!("missing {text:?}; screen:\n{}", self.screen_contents())
     }
 
+    pub(super) fn exit_status(&mut self) -> Result<Option<std::process::ExitStatus>> {
+        Ok(self.child.try_wait()?)
+    }
+
     pub(super) fn ensure_running(&mut self) -> Result<()> {
         ensure!(
             self.child.try_wait()?.is_none(),

@@ -17,6 +17,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::Condvar;
 use std::sync::Mutex;
+use std::sync::Once;
 use std::sync::OnceLock;
 use std::time::Duration;
 use std::time::Instant;
@@ -60,6 +61,8 @@ struct Shared {
     /// The last state/session pair already sent (or queued) to Herdr.
     sent: Option<(HerdrState, Option<String>)>,
     shutdown: bool,
+    /// Set once the worker has delivered the release, so exit can wait for it.
+    released: bool,
 }
 
 pub(crate) struct HerdrAgent {
@@ -83,6 +86,7 @@ impl HerdrAgent {
             shared: Arc::new((Mutex::new(Shared::default()), Condvar::new())),
         };
         agent.spawn_worker();
+        register_release_at_exit();
         Some(agent)
     }
 }
@@ -152,7 +156,7 @@ pub(crate) fn release() {
     let mut shared = lock
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
-    if shared.shutdown {
+    if shared.released {
         return;
     }
     shared.shutdown = true;
@@ -160,6 +164,30 @@ pub(crate) fn release() {
         shared.pending = Some(Job::Release);
     }
     signal.notify_all();
+    // The process tears down right after this returns, so wait for the worker to
+    // actually deliver the release instead of losing the race to process exit.
+    let deadline = Instant::now() + REPORT_TIMEOUT + POLL_INTERVAL;
+    while !shared.released && Instant::now() < deadline {
+        let (guard, wait) = signal
+            .wait_timeout(shared, POLL_INTERVAL)
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        shared = guard;
+        let _ = wait;
+    }
+}
+
+extern "C" fn release_at_exit() {
+    release();
+}
+
+/// The TUI's exit paths do not all unwind through the startup future that owns the
+/// reporter's lifetime, so the release is also registered with the C runtime: it fires on
+/// normal returns and on `std::process::exit`, and the flag in `Shared` keeps it idempotent.
+fn register_release_at_exit() {
+    static REGISTERED: Once = Once::new();
+    REGISTERED.call_once(|| unsafe {
+        libc::atexit(release_at_exit);
+    });
 }
 
 impl HerdrAgent {
@@ -198,6 +226,12 @@ fn worker(pane_id: String, herdr_bin: PathBuf, shared: Arc<(Mutex<Shared>, Condv
             }) => report_state(&pane_id, &herdr_bin, state, message.as_deref(), session_id),
             Some(Job::Release) => {
                 report_release(&pane_id, &herdr_bin);
+                let (lock, signal) = &*shared;
+                let mut guard = lock
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                guard.released = true;
+                signal.notify_all();
                 return;
             }
             None => {}
