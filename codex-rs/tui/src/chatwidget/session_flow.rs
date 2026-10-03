@@ -71,6 +71,9 @@ impl ChatWidget {
         let connector_scope_changed = previous_thread_id != Some(session.thread_id)
             || self.config.cwd.as_path() != session.cwd.as_path();
         self.thread_id = Some(session.thread_id);
+        // Hushdex (fork): session switches report immediately so Herdr's resume argv and
+        // agent-session link track the live session, not just state transitions.
+        self.note_herdr_state(None);
         #[cfg(target_os = "windows")]
         if self.windows_sandbox_local_server
             && matches!(self.codex_op_target, CodexOpTarget::AppEvent)

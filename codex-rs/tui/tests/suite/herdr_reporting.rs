@@ -68,8 +68,13 @@ fn herdr_pane_receives_state_and_release_reports() -> Result<()> {
     let home = tempfile::tempdir()?;
     write_test_config(home.path(), &repo_root)?;
     let herdr = FakeHerdr::install()?;
-    let codex = codex_utils_cargo_bin::cargo_bin("codex-tui")
-        .or_else(|_| codex_utils_cargo_bin::cargo_bin("codex"))?;
+    let codex = std::env::var("HERDR_TEST_RELEASE_BIN")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            codex_utils_cargo_bin::cargo_bin("codex-tui")
+                .or_else(|_| codex_utils_cargo_bin::cargo_bin("codex"))
+                .expect("codex binary")
+        });
 
     let env = herdr.env();
     let env_refs: Vec<(&str, &str)> = env.iter().map(|(k, v)| (*k, v.as_str())).collect();
@@ -99,13 +104,19 @@ fn herdr_pane_receives_state_and_release_reports() -> Result<()> {
         state.contains("--state idle") || state.contains("--state working"),
         "the first report carries an observed state: {state}"
     );
+    // The first report now arrives during the startup splash; wait for the composer
+    // before quitting so the exit key reaches the running app.
+    terminal.wait_for_screen("Ask Codex to do anything")?;
 
     terminal.write_input(b"\x04")?;
+    std::thread::sleep(Duration::from_secs(/*secs*/ 3));
+    let status = terminal.exit_status()?;
     let release = herdr.wait_for("release-agent pty:p1", Duration::from_secs(/*secs*/ 10));
     assert!(
         release.is_some(),
-        "the pane is released on exit; log: {:?}",
-        herdr.reports()
+        "the pane is released on exit; status={status:?}; log: {:?}; screen:\n{}",
+        herdr.reports(),
+        terminal.screen_contents()
     );
     Ok(())
 }

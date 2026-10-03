@@ -1154,6 +1154,10 @@ async fn run_ratatui_app(
     let workload_identity_selected = is_workload_identity_selected();
     color_eyre::install()?;
 
+    // Hushdex (fork): hold the Herdr pane before any interactive startup phase (resume
+    // picker, trust dialogs, onboarding) so the agent is visible from the first moments.
+    crate::herdr::note_observed(/*running*/ false, /*blocked*/ false, None, None);
+
     tooltips::announcement::prewarm(initial_config.http_client_factory());
 
     // Forward panic reports through tracing so they appear in the UI status
