@@ -1018,6 +1018,7 @@ impl ChatWidget {
         let removed_visible = self.bottom_pane.dismiss_app_server_request(request);
         if removed_deferred || removed_visible {
             self.request_redraw();
+            self.note_herdr_state(None);
         }
     }
 

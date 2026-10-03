@@ -710,6 +710,13 @@ impl BottomPane {
 
     fn pop_active_view_with_completion(&mut self, completion: Option<ViewCompletion>) {
         if self.view_stack.pop().is_some() {
+            // Hushdex (fork): a decision overlay closing may unblock the Herdr agent state.
+            crate::herdr::note_observed(
+                self.is_task_running,
+                self.has_pending_approval(),
+                None,
+                self.thread_id.as_ref().map(ToString::to_string).as_deref(),
+            );
             match completion {
                 Some(ViewCompletion::Accepted) => {
                     while self

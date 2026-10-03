@@ -76,6 +76,11 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/thread_transcript/other_items.rs` | Adapt to the boxed lifecycle cell (+1 line). |
 | `codex-rs/tui/src/history_cell/messages.rs` | User prompts render as the accented user band: bar prefix spans replace the `›` chevron, guaranteed fill, band framing via `user_band` (+12 lines). |
 | `codex-rs/tui/src/focus_summaries.rs` | Summary lines (`• Ran`, `• Called`, `• Edited`, aggregates like `Read 3 files, ran 1 shell command`) render dimmed to the working-status indicator's level; the modifier is applied per span at the shared builders (`clipped`, `aggregate_line`, `first_display_line`) because line-level styles do not survive wrapping. Failures and user-shell output bypass the builders and stay full brightness. |
+| `codex-rs/tui/src/chatwidget/turn_runtime.rs` | `note_herdr_state` helper + call from `update_task_running_state` (working/idle) (+13 lines). |
+| `codex-rs/tui/src/chatwidget/tool_requests.rs` | Blocked reports at the decision-open sites (+5 lines). |
+| `codex-rs/tui/src/chatwidget/questions.rs`, `codex-rs/tui/src/chatwidget.rs` | Blocked report for async questions; unblocked re-sync in `dismiss_app_server_request` (+2 lines). |
+| `codex-rs/tui/src/bottom_pane/mod.rs` | Decision-overlay close re-syncs the Herdr state in `pop_active_view_with_completion` (+5 lines). |
+| `codex-rs/tui/src/lib.rs` | Initial idle report before `App::run`; `herdr::release()` at TUI exit (+8 lines). |
 | `codex-rs/tui/src/style.rs` | `deterministic_accent_on` pins the color level so the band renders identically under every test runner (+20 lines). |
 | `codex-rs/tui/src/transcript_view/prompt_header.rs` | The pinned prompt header mirrors the banded prompt instead of its own chevron (+4 lines). |
 | `codex-rs/tui/src/bottom_pane/chat_composer.rs` | Composer frame renders as the user band: fill fallback plus an accent bar down `composer_rect`'s left edge; the plain-state prompt glyph is the bar itself (+10 lines, doc line updated per bottom-pane AGENTS). |
@@ -84,6 +89,11 @@ The plan's assumptions held, with these precise locations:
 New files (fork-owned): `codex-rs/tui/src/focus.rs`, `codex-rs/tui/src/focus_summaries.rs`,
 `codex-rs/tui/src/focus_tests.rs`, `codex-rs/tui/src/app/focus_aggregate.rs`,
 `codex-rs/tui/src/user_band.rs` (accented user band for prompts and the composer),
+`codex-rs/tui/src/herdr.rs` + `herdr_tests.rs` (Herdr pane-agent reporter: env-gated
+singleton, background worker with latest-wins coalescing, state/resume/release via
+`$HERDR_BIN_PATH`, monotonic wall-clock seq, no-ops outside Herdr and in test builds),
+`tui/tests/suite/herdr_reporting.rs` (PTY tests: real binary reports state and release to a
+fake Herdr CLI; silent without the pane environment).
 
 Upstream test adjustments (assertion wording only, same intent): `history_cell/messages_tests.rs`
 and `history_cell/tests.rs` (bar prefix replaces the chevron/gutter; band frame rows count as
