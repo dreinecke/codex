@@ -6,6 +6,8 @@ mod directory_trust;
 #[cfg(unix)]
 mod focus_palette;
 #[cfg(unix)]
+mod herdr_reporting;
+#[cfg(unix)]
 mod provider_defaults;
 #[cfg(unix)]
 mod reconnect;

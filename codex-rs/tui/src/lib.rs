@@ -156,6 +156,7 @@ mod get_git_diff;
 mod git_action_directives;
 mod goal_display;
 mod goal_files;
+mod herdr;
 mod history_cell;
 mod hooks_rpc;
 mod ide_context;
@@ -2058,6 +2059,8 @@ async fn run_ratatui_app(
 
     // Keep the large event-loop future out of the enclosing startup futures so session
     // transitions have enough stack headroom to rebuild configuration and the chat widget.
+    // Hushdex (fork): hold the Herdr pane from the first moments of the session.
+    crate::herdr::note_observed(/*running*/ false, /*blocked*/ false, None, None);
     let app_result = Box::pin(App::run(
         &mut tui,
         app_server,
@@ -2089,6 +2092,8 @@ async fn run_ratatui_app(
     terminal_restore_guard.restore_silently();
     // Mark the end of the recorded session.
     session_log::log_session_end();
+    // Hushdex (fork): the pane's agent is gone; release it with Herdr before exiting.
+    crate::herdr::release();
     // ignore error when collecting usage – report underlying error instead
     app_result
 }

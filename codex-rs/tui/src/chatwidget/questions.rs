@@ -33,6 +33,7 @@ impl ChatWidget {
                 _ => format!("{added_count} questions requested"),
             };
             self.notify(Notification::AsyncQuestion { title });
+            self.note_herdr_state(Some("Question requested"));
         }
         self.refresh_pending_input_preview();
     }
