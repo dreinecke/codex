@@ -239,7 +239,11 @@ pub(crate) fn exec_focus_lines(cell: &ExecCell, width: u16) -> Vec<Line<'static>
         .iter_calls()
         .any(|call| matches!(call.source, CommandExecutionSource::UserShell));
     if failed {
-        return cell.transcript_lines(width);
+        // Hushdex: failures keep their full output and exit footer, but the command echo
+        // clamps to one line so heredoc source never floods the transcript.
+        return crate::terminal_hyperlinks::visible_lines(
+            cell.focus_failure_hyperlink_lines(width),
+        );
     }
     if user_shell {
         return cell.display_lines(width);

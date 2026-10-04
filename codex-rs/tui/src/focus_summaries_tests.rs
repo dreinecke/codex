@@ -72,3 +72,50 @@ fn label_lines_render_at_the_working_status_level() {
         Some(ratatui::style::Color::Green)
     );
 }
+
+#[test]
+fn failed_multiline_commands_clamp_their_source_echo() {
+    let command = vec![format!(
+        "python - <<'PY'\nfrom pathlib import Path\nimport json\nprint(json.dumps({{}}))\nPY"
+    )];
+    let parsed = codex_shell_command::parse_command::parse_command(&command);
+    let cell = crate::exec_cell::ExecCell::new(
+        crate::exec_cell::ExecCall {
+            call_id: "call-ml".to_owned(),
+            command,
+            parsed,
+            output: Some(crate::exec_cell::CommandOutput::new(
+                /*exit_code*/ 1,
+                "Retained identity transition refused: Source text is invalid\n".to_owned(),
+            )),
+            source: CommandExecutionSource::UnifiedExecStartup,
+            start_time: None,
+            duration: Some(std::time::Duration::from_millis(/*millis*/ 827)),
+            interaction_input: None,
+        },
+        /*animations_enabled*/ false,
+    );
+    let lines = exec_focus_lines(&cell, /*width*/ 80);
+    let rendered: Vec<String> = lines.iter().map(ToString::to_string).collect();
+    let joined = rendered.join("\n");
+    assert!(
+        joined.contains("python - <<'PY'"),
+        "the command's first line stays visible: {joined}"
+    );
+    assert!(
+        joined.contains("⋯ +4 source lines"),
+        "the heredoc body collapses to a count: {joined}"
+    );
+    assert!(
+        !joined.contains("from pathlib"),
+        "heredoc source never echoes: {joined}"
+    );
+    assert!(
+        joined.contains("Retained identity transition refused"),
+        "failure output stays visible: {joined}"
+    );
+    assert!(
+        joined.contains("✗ (1)"),
+        "the exit footer stays visible: {joined}"
+    );
+}

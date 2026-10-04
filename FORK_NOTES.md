@@ -81,6 +81,7 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/chatwidget/questions.rs`, `codex-rs/tui/src/chatwidget.rs` | Blocked report for async questions; unblocked re-sync in `dismiss_app_server_request` (+2 lines). |
 | `codex-rs/tui/src/bottom_pane/mod.rs` | Decision-overlay close re-syncs the Herdr state in `pop_active_view_with_completion` (+5 lines). |
 | `codex-rs/tui/src/lib.rs` | Initial idle report at the top of `run_ratatui_app` (before any interactive startup phase) and `herdr::release()` at TUI exit (+8 lines). |
+| `codex-rs/tui/src/exec_cell/transcript.rs` | Focus-mode failure rendering clamps the command echo to its first line (`⋯ +N source lines`) so failed heredoc scripts cannot flood the transcript; full output and the exit footer stay visible. |
 | `codex-rs/tui/src/chatwidget/session_flow.rs` | Session attach reports immediately, so the agent-session link and resume argv track session switches (+3 lines). |
 | `codex-rs/tui/src/style.rs` | `deterministic_accent_on` pins the color level so the band renders identically under every test runner (+20 lines). |
 | `codex-rs/tui/src/transcript_view/prompt_header.rs` | The pinned prompt header mirrors the banded prompt instead of its own chevron (+4 lines). |
