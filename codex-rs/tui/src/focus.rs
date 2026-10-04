@@ -22,7 +22,7 @@ use ratatui::text::Line;
 /// Identity of this Hushdex build: the date and sequence of fork changes that day.
 /// Bump this in every fork commit that changes behavior; it prints in the `/focus` notice so a
 /// running session can identify itself (`hushdex --version` only reports the upstream number).
-pub(crate) const HUSHDEX_BUILD: &str = "2026-10-03.3";
+pub(crate) const HUSHDEX_BUILD: &str = "2026-10-04.1";
 
 /// Whether new sessions start with focus mode on.
 ///

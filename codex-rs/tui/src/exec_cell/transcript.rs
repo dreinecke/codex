@@ -19,13 +19,43 @@ impl ExecCell {
         width: u16,
         mode: HistoryRenderMode,
     ) -> Vec<HyperlinkLine> {
+        self.detailed_hyperlink_lines_with_options(width, mode, /*clamp_command_echo*/ false)
+    }
+
+    /// Hushdex: focus-mode failure rendering. The full output and the exit footer stay
+    /// visible, but the command echo clamps to its first line so a multi-line heredoc
+    /// script cannot flood the transcript with its own source.
+    pub(crate) fn focus_failure_hyperlink_lines(&self, width: u16) -> Vec<HyperlinkLine> {
+        self.detailed_hyperlink_lines_with_options(
+            width,
+            HistoryRenderMode::Rich,
+            /*clamp_command_echo*/ true,
+        )
+    }
+
+    fn detailed_hyperlink_lines_with_options(
+        &self,
+        width: u16,
+        mode: HistoryRenderMode,
+        clamp_command_echo: bool,
+    ) -> Vec<HyperlinkLine> {
         let mut lines: Vec<HyperlinkLine> = vec![];
         for (i, call) in self.iter_calls().enumerate() {
             if i > 0 {
                 lines.push("".into());
             }
             let script = strip_bash_lc_and_escape(&call.command);
-            let highlighted_script = highlight_bash_to_lines(&script);
+            let omitted_source_lines = if clamp_command_echo {
+                script.lines().count().saturating_sub(1)
+            } else {
+                0
+            };
+            let script_echo = if clamp_command_echo {
+                script.lines().next().unwrap_or_default().to_string()
+            } else {
+                script
+            };
+            let highlighted_script = highlight_bash_to_lines(&script_echo);
             let cmd_display = adaptive_wrap_hyperlink_lines(
                 &plain_hyperlink_lines(highlighted_script),
                 RtOptions::new(width as usize)
@@ -33,6 +63,12 @@ impl ExecCell {
                     .subsequent_indent("    ".into()),
             );
             lines.extend(cmd_display);
+            if omitted_source_lines > 0 {
+                lines.push(HyperlinkLine::new(Line::from(vec![
+                    "    ⋯ +".dim(),
+                    format!("{omitted_source_lines} source lines").dim(),
+                ])));
+            }
 
             if let Some(output) = call.output.as_ref() {
                 if !call.is_unified_exec_interaction() {
