@@ -13,23 +13,30 @@ use codex_ansi_escape::ansi_escape_line;
 use codex_utils_elapsed::format_duration;
 use ratatui::prelude::*;
 
+/// Hushdex: focus-mode failures keep this many trailing output lines; failure summaries
+/// live at the end of a run, everything above is bookkeeping.
+const FOCUS_FAILURE_OUTPUT_TAIL: usize = 6;
+
 impl ExecCell {
     pub(super) fn detailed_hyperlink_lines(
         &self,
         width: u16,
         mode: HistoryRenderMode,
     ) -> Vec<HyperlinkLine> {
-        self.detailed_hyperlink_lines_with_options(width, mode, /*clamp_command_echo*/ false)
+        self.detailed_hyperlink_lines_with_options(
+            width, mode, /*clamp_command_echo*/ false, /*clamp_output_tail*/ None,
+        )
     }
 
-    /// Hushdex: focus-mode failure rendering. The full output and the exit footer stay
-    /// visible, but the command echo clamps to its first line so a multi-line heredoc
-    /// script cannot flood the transcript with its own source.
+    /// Hushdex: focus-mode failure rendering. The command echo clamps to its first line so a
+    /// multi-line heredoc script cannot flood the transcript, and the output clamps to its
+    /// tail — failure summaries live at the end — keeping the exit footer visible.
     pub(crate) fn focus_failure_hyperlink_lines(&self, width: u16) -> Vec<HyperlinkLine> {
         self.detailed_hyperlink_lines_with_options(
             width,
             HistoryRenderMode::Rich,
             /*clamp_command_echo*/ true,
+            /*clamp_output_tail*/ Some(FOCUS_FAILURE_OUTPUT_TAIL),
         )
     }
 
@@ -38,6 +45,7 @@ impl ExecCell {
         width: u16,
         mode: HistoryRenderMode,
         clamp_command_echo: bool,
+        clamp_output_tail: Option<usize>,
     ) -> Vec<HyperlinkLine> {
         let mut lines: Vec<HyperlinkLine> = vec![];
         for (i, call) in self.iter_calls().enumerate() {
@@ -74,10 +82,22 @@ impl ExecCell {
                 if !call.is_unified_exec_interaction() {
                     let wrap_width = width.max(/*other*/ 1) as usize;
                     let wrap_opts = RtOptions::new(wrap_width);
-                    for unwrapped in output
+                    let mut unwrapped_lines = output
                         .transcript_lines()
                         .map(|line| ansi_escape_line(line.as_ref()))
+                        .collect::<Vec<_>>();
+                    if let Some(tail) = clamp_output_tail
+                        && unwrapped_lines.len() > tail
                     {
+                        let omitted = unwrapped_lines.len() - tail;
+                        let kept = unwrapped_lines.split_off(unwrapped_lines.len() - tail);
+                        unwrapped_lines = kept;
+                        lines.push(HyperlinkLine::new(Line::from(vec![
+                            "⋯ +".dim(),
+                            format!("{omitted} output lines").dim(),
+                        ])));
+                    }
+                    for unwrapped in unwrapped_lines {
                         lines.extend(adaptive_wrap_hyperlink_lines(
                             &[unwrapped.into()],
                             wrap_opts.clone(),
