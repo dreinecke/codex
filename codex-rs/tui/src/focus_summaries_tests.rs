@@ -79,6 +79,13 @@ fn failed_multiline_commands_clamp_their_source_echo() {
         "python - <<'PY'\nfrom pathlib import Path\nimport json\nprint(json.dumps({{}}))\nPY"
     )];
     let parsed = codex_shell_command::parse_command::parse_command(&command);
+    let output_text = (1..=20)
+        .map(|i| format!("phase=step{i} result=passed"))
+        .chain(std::iter::once(
+            "result=failed status=1 cleanup=complete log=/tmp/run.log".to_owned(),
+        ))
+        .collect::<Vec<_>>()
+        .join("\n");
     let cell = crate::exec_cell::ExecCell::new(
         crate::exec_cell::ExecCall {
             call_id: "call-ml".to_owned(),
@@ -86,7 +93,7 @@ fn failed_multiline_commands_clamp_their_source_echo() {
             parsed,
             output: Some(crate::exec_cell::CommandOutput::new(
                 /*exit_code*/ 1,
-                "Retained identity transition refused: Source text is invalid\n".to_owned(),
+                output_text,
             )),
             source: CommandExecutionSource::UnifiedExecStartup,
             start_time: None,
@@ -111,8 +118,16 @@ fn failed_multiline_commands_clamp_their_source_echo() {
         "heredoc source never echoes: {joined}"
     );
     assert!(
-        joined.contains("Retained identity transition refused"),
-        "failure output stays visible: {joined}"
+        joined.contains("⋯ +15 output lines"),
+        "long output clamps to its tail with a count: {joined}"
+    );
+    assert!(
+        joined.contains("result=failed status=1"),
+        "the trailing failure summary stays visible: {joined}"
+    );
+    assert!(
+        !joined.contains("phase=step1 "),
+        "early bookkeeping output is dropped: {joined}"
     );
     assert!(
         joined.contains("✗ (1)"),
