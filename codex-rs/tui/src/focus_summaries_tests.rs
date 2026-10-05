@@ -134,3 +134,69 @@ fn failed_multiline_commands_clamp_their_source_echo() {
         "the exit footer stays visible: {joined}"
     );
 }
+
+fn exec_call(
+    call_id: &str,
+    command: &str,
+    exit_code: i32,
+    output: String,
+) -> crate::exec_cell::ExecCall {
+    let command = vec![command.to_owned()];
+    let parsed = codex_shell_command::parse_command::parse_command(&command);
+    crate::exec_cell::ExecCall {
+        call_id: call_id.to_owned(),
+        command,
+        parsed,
+        output: Some(crate::exec_cell::CommandOutput::new(exit_code, output)),
+        source: CommandExecutionSource::UnifiedExecStartup,
+        start_time: None,
+        duration: Some(std::time::Duration::from_millis(/*millis*/ 5)),
+        interaction_input: None,
+    }
+}
+
+#[test]
+fn mixed_cells_condense_successful_siblings_of_failures() {
+    let cell = crate::exec_cell::ExecCell::new(
+        exec_call(
+            "cat-ok",
+            "cat test/order_matrix/test_suite_candidates.py",
+            /*exit_code*/ 0,
+            (1..=90)
+                .map(|i| format!("source line {i} of the file"))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        ),
+        /*animations_enabled*/ false,
+    );
+    // Attach a failed sibling to the same group the way multi-call cells are built.
+    let mut cell = cell;
+    cell.group.calls.push(exec_call(
+        "pytest-fail",
+        "bin/isolated-full-test",
+        /*exit_code*/ 1,
+        "phase=preflight result=passed\nresult=failed status=1\n".to_owned(),
+    ));
+    let lines = exec_focus_lines(&cell, /*width*/ 80);
+    let joined = lines
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        joined.contains("Ran 'cat test/order_matrix/test_suite_candidates.py'"),
+        "the successful sibling condenses to its one-liner: {joined}"
+    );
+    assert!(
+        !joined.contains("source line 1 of the file"),
+        "successful sibling output never renders: {joined}"
+    );
+    assert!(
+        joined.contains("$ bin/isolated-full-test"),
+        "the failed call keeps its command line: {joined}"
+    );
+    assert!(
+        joined.contains("✗ (1)"),
+        "the failed call keeps its exit footer: {joined}"
+    );
+}

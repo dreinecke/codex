@@ -239,35 +239,48 @@ pub(crate) fn exec_focus_lines(cell: &ExecCell, width: u16) -> Vec<Line<'static>
         .iter_calls()
         .any(|call| matches!(call.source, CommandExecutionSource::UserShell));
     if failed {
-        // Hushdex: failures keep their full output and exit footer, but the command echo
-        // clamps to one line so heredoc source never floods the transcript.
-        return crate::terminal_hyperlinks::visible_lines(
-            cell.focus_failure_hyperlink_lines(width),
-        );
+        // Hushdex: per-call granularity inside a mixed cell — failed calls render the
+        // clamped failure form while successful siblings condense to their one-liners,
+        // so one failure cannot expand a whole successful run.
+        let mut lines = Vec::new();
+        for call in cell.iter_calls() {
+            if absorbable_exit(call) {
+                lines.push(success_call_line(call, width));
+            } else {
+                lines.extend(crate::terminal_hyperlinks::visible_lines(
+                    cell.focus_failure_call_hyperlink_lines(call, width),
+                ));
+            }
+        }
+        return lines;
     }
     if user_shell {
         return cell.display_lines(width);
     }
     cell.iter_calls()
-        .map(|call| {
-            let running = call.duration.is_none();
-            let marker = if running {
-                "•".dim()
-            } else {
-                "•".green().bold()
-            };
-            let verb = if running { "Running" } else { "Ran" };
-            let script = strip_bash_lc_and_escape(&call.command);
-            let mut command_lines = highlight_bash_to_lines(&script).into_iter();
-            let mut command = command_lines.next().unwrap_or_default();
-            if command_lines.next().is_some() {
-                command.push_span(" …".dim());
-            }
-            let mut line = Line::from(vec![marker, " ".into(), verb.bold(), " ".into()]);
-            line.extend(command.spans);
-            clipped(line, width)
-        })
+        .map(|call| success_call_line(call, width))
         .collect()
+}
+
+/// `• Ran <command>` (or `• Running <command>` while in flight), muted to the working-status
+/// level by the shared `clipped` wrapper.
+fn success_call_line(call: &ExecCall, width: u16) -> Line<'static> {
+    let running = call.duration.is_none();
+    let marker = if running {
+        "•".dim()
+    } else {
+        "•".green().bold()
+    };
+    let verb = if running { "Running" } else { "Ran" };
+    let script = strip_bash_lc_and_escape(&call.command);
+    let mut command_lines = highlight_bash_to_lines(&script).into_iter();
+    let mut command = command_lines.next().unwrap_or_default();
+    if command_lines.next().is_some() {
+        command.push_span(" …".dim());
+    }
+    let mut line = Line::from(vec![marker, " ".into(), verb.bold(), " ".into()]);
+    line.extend(command.spans);
+    clipped(line, width)
 }
 
 /// `• Called <server>.<tool>` for a successful MCP call; running calls show `Calling`.
