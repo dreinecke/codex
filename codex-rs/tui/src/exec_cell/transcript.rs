@@ -14,9 +14,71 @@ use codex_ansi_escape::ansi_escape_line;
 use codex_utils_elapsed::format_duration;
 use ratatui::prelude::*;
 
-/// Hushdex: focus-mode failures keep this many trailing output lines; failure summaries
-/// live at the end of a run, everything above is bookkeeping.
+/// Hushdex: focus-mode failures keep at most this many trailing output lines, anchored to
+/// error-looking lines — in `A; B` chains the error lands last, so an unanchored tail would
+/// showcase the successful sibling's output instead of the failure.
 const FOCUS_FAILURE_OUTPUT_TAIL: usize = 6;
+
+/// True for diagnostic-style output: tool-prefixed messages (`sed: …`, `cargo: …`) or lines
+/// carrying a common failure keyword. Non-matching lines above the anchored tail are dropped.
+fn looks_like_error_line(line: &str) -> bool {
+    let line = line.trim();
+    if line.is_empty() {
+        return false;
+    }
+    let lowered = line.to_ascii_lowercase();
+    lowered.contains("error")
+        || lowered.contains("failed")
+        || lowered.contains("failure")
+        || lowered.contains("traceback")
+        || lowered.contains("exception")
+        || lowered.contains("no such file")
+        || lowered.contains("not found")
+        || lowered.contains("refused")
+        || lowered.contains("denied")
+        || lowered.contains("cannot")
+        || lowered.contains("can't")
+        || lowered.contains("fatal")
+        || lowered.contains("panic")
+        || lowered.contains("warning")
+        || line.split_once(':').is_some_and(|(tool, rest)| {
+            !tool.is_empty()
+                && tool.len() <= 24
+                && tool
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.')
+                && rest.starts_with(' ')
+        })
+}
+
+/// Selects the failure-visible slice of a command's output: trailing blank lines are
+/// dropped, then lines are kept from the end while they look diagnostic, always keeping at
+/// least the final line, capped at [`FOCUS_FAILURE_OUTPUT_TAIL`]. Returns the start index
+/// of the kept slice within `texts`.
+fn failure_output_tail_start(texts: &[String]) -> usize {
+    let mut end = texts.len();
+    while end > 0 && texts[end - 1].trim().is_empty() {
+        end -= 1;
+    }
+    if end == 0 {
+        return texts.len();
+    }
+    let mut kept = 1;
+    while kept < end
+        && kept < FOCUS_FAILURE_OUTPUT_TAIL
+        && looks_like_error_line(&texts[end - kept - 1])
+    {
+        kept += 1;
+    }
+    end - kept
+}
+
+fn line_text(line: &Line<'static>) -> String {
+    line.spans
+        .iter()
+        .map(|span| span.content.as_ref())
+        .collect()
+}
 
 impl ExecCell {
     pub(super) fn detailed_hyperlink_lines(
@@ -115,24 +177,30 @@ fn push_call_hyperlink_lines(
     if !call.is_unified_exec_interaction() {
         let wrap_width = width.max(/*other*/ 1) as usize;
         let wrap_opts = RtOptions::new(wrap_width);
-        let mut unwrapped_lines = output
+        let all_lines = output
             .transcript_lines()
             .map(|line| ansi_escape_line(line.as_ref()))
             .collect::<Vec<_>>();
-        if let Some(tail) = clamp_output_tail
-            && unwrapped_lines.len() > tail
-        {
-            let omitted = unwrapped_lines.len() - tail;
-            let kept = unwrapped_lines.split_off(unwrapped_lines.len() - tail);
-            unwrapped_lines = kept;
+        // Hushdex: failures anchor the tail to error-looking lines so `A; B` chains show
+        // the failure, not the successful sibling's output.
+        let visible_from = match clamp_output_tail {
+            Some(_) => {
+                let texts: Vec<String> = all_lines.iter().map(line_text).collect();
+                failure_output_tail_start(&texts)
+            }
+            None => 0,
+        };
+        if visible_from > 0 {
+            let omitted = visible_from;
             lines.push(HyperlinkLine::new(Line::from(vec![
                 "⋯ +".dim(),
                 format!("{omitted} output lines").dim(),
             ])));
         }
+        let unwrapped_lines = &all_lines[visible_from..];
         for unwrapped in unwrapped_lines {
             lines.extend(adaptive_wrap_hyperlink_lines(
-                &[unwrapped.into()],
+                &[unwrapped.clone().into()],
                 wrap_opts.clone(),
             ));
         }

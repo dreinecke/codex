@@ -118,8 +118,8 @@ fn failed_multiline_commands_clamp_their_source_echo() {
         "heredoc source never echoes: {joined}"
     );
     assert!(
-        joined.contains("⋯ +15 output lines"),
-        "long output clamps to its tail with a count: {joined}"
+        joined.contains("⋯ +20 output lines"),
+        "long output clamps to its error-anchored tail with a count: {joined}"
     );
     assert!(
         joined.contains("result=failed status=1"),
@@ -199,4 +199,45 @@ fn mixed_cells_condense_successful_siblings_of_failures() {
         joined.contains("✗ (1)"),
         "the failed call keeps its exit footer: {joined}"
     );
+}
+
+#[test]
+fn failed_chain_output_anchors_to_the_error_line() {
+    let output = [
+        "useful tail of the successful first command".to_owned(),
+        "    print(rendered, end='')".to_owned(),
+        String::new(),
+        "if __name__ == '__main__':".to_owned(),
+        "sed: can't read docs/testing/order-matrix/source-freeze.md: No such file or directory"
+            .to_owned(),
+    ]
+    .join("\n");
+    let cell = crate::exec_cell::ExecCell::new(
+        exec_call(
+            "chain-fail",
+            "tail -n 65 test/order_matrix/pin_applications.py; sed -n '1,150p' docs/testing/order-matrix/source-freeze.md",
+            /*exit_code*/ 2,
+            output,
+        ),
+        /*animations_enabled*/ false,
+    );
+    let lines = exec_focus_lines(&cell, /*width*/ 100);
+    let joined = lines
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        joined.contains("sed: can't read docs/testing/order-matrix/source-freeze.md"),
+        "the error line stays visible: {joined}"
+    );
+    assert!(
+        joined.contains("⋯ +4 output lines"),
+        "successful sibling output is counted, not shown: {joined}"
+    );
+    assert!(
+        !joined.contains("print(rendered"),
+        "the successful command's output never renders: {joined}"
+    );
+    assert!(joined.contains("✗ (2)"), "the exit footer stays: {joined}");
 }
