@@ -178,7 +178,10 @@ pub(super) fn absorb_into_focus_aggregate(
 /// Hidden cells, stream-continuation fragments, and hidden lifecycle telemetry do not interrupt
 /// a run; the first visible non-aggregate cell does.
 fn trailing_aggregate_index(app: &App) -> Option<usize> {
-    for (index, cell) in app.transcript_cells.iter().enumerate().rev().take(/*n*/ 4) {
+    // Hushdex: reasoning-heavy turns push many hidden cells between the aggregate and the
+    // next absorbable cell; a small window made consecutive runs emit adjacent aggregates
+    // instead of merging. The scan stays cheap — pointer downcasts over hidden cells only.
+    for (index, cell) in app.transcript_cells.iter().enumerate().rev().take(/*n*/ 64) {
         if cell.as_any().downcast_ref::<FocusAggregateCell>().is_some() {
             return Some(index);
         }
