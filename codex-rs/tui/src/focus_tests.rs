@@ -295,10 +295,13 @@ fn focus_output_keeps_agent_text_verbatim_and_hides_reasoning() {
 fn failed_command_renders_in_full_with_exit_code() {
     let cells = fixture_cells();
     let focus_lines = cells.command_failed.focus_lines(WIDTH);
+    // Hushdex: failures condense to one muted row carrying the command and exit code;
+    // the full block (command, output, footer) stays in the transcript pager.
     assert_eq!(
-        focus_lines,
-        cells.command_failed.transcript_lines(WIDTH),
-        "failed commands render in the full transcript form"
+        focus_lines.len(),
+        1,
+        "failed commands condense to one row:\n{}",
+        lines_to_string(&focus_lines)
     );
     let text = lines_to_string(&focus_lines);
     assert!(
@@ -306,12 +309,16 @@ fn failed_command_renders_in_full_with_exit_code() {
         "failed command must show the command:\n{text}"
     );
     assert!(
-        text.contains("could not compile"),
-        "failed command must show its output:\n{text}"
+        text.contains("✗"),
+        "failed command must show the failure marker:\n{text}"
     );
     assert!(
-        text.contains("(2)"),
+        text.contains("(exit 2)"),
         "failed command must show its exit code:\n{text}"
+    );
+    assert!(
+        !text.contains("could not compile"),
+        "failed command output stays in the pager:\n{text}"
     );
 }
 

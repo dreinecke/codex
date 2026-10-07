@@ -11,9 +11,7 @@ expression: "render(&cells.all(), true)"
 
 • Ran cargo build --quiet
 
-$ cargo test
-error: could not compile `hushdex` due to 3 previous errors
-✗ (2) • 3.40s
+✗ cargo test (exit 2)
 
 • Edited src/app.rs (+3 -1)
 • Edited src/five.rs (+1 -0)

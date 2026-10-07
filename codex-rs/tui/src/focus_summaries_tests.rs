@@ -74,26 +74,26 @@ fn label_lines_render_at_the_working_status_level() {
 }
 
 #[test]
-fn failed_multiline_commands_clamp_their_source_echo() {
-    let command = vec![format!(
+fn failed_calls_condense_to_one_muted_row_with_exit_code() {
+    let heredoc = vec![format!(
         "python - <<'PY'\nfrom pathlib import Path\nimport json\nprint(json.dumps({{}}))\nPY"
     )];
-    let parsed = codex_shell_command::parse_command::parse_command(&command);
-    let output_text = (1..=20)
+    let parsed = codex_shell_command::parse_command::parse_command(&heredoc);
+    let bookkeeping = (1..=20)
         .map(|i| format!("phase=step{i} result=passed"))
         .chain(std::iter::once(
-            "result=failed status=1 cleanup=complete log=/tmp/run.log".to_owned(),
+            "sed: can't read docs/testing/source-freeze.md: No such file or directory".to_owned(),
         ))
         .collect::<Vec<_>>()
         .join("\n");
     let cell = crate::exec_cell::ExecCell::new(
         crate::exec_cell::ExecCall {
-            call_id: "call-ml".to_owned(),
-            command,
+            call_id: "heredoc".to_owned(),
+            command: heredoc,
             parsed,
             output: Some(crate::exec_cell::CommandOutput::new(
                 /*exit_code*/ 1,
-                output_text,
+                bookkeeping,
             )),
             source: CommandExecutionSource::UnifiedExecStartup,
             start_time: None,
@@ -103,35 +103,36 @@ fn failed_multiline_commands_clamp_their_source_echo() {
         /*animations_enabled*/ false,
     );
     let lines = exec_focus_lines(&cell, /*width*/ 80);
-    let rendered: Vec<String> = lines.iter().map(ToString::to_string).collect();
-    let joined = rendered.join("\n");
+    assert_eq!(lines.len(), 1, "a failed call costs exactly one row");
+    let text = lines[0].to_string();
     assert!(
-        joined.contains("python - <<'PY'"),
-        "the command's first line stays visible: {joined}"
+        text.contains("python - <<'PY'"),
+        "the command's first line stays visible: {text}"
     );
     assert!(
-        joined.contains("⋯ +4 source lines"),
-        "the heredoc body collapses to a count: {joined}"
+        text.contains("(exit 1)"),
+        "the exit code rides the row: {text}"
     );
     assert!(
-        !joined.contains("from pathlib"),
-        "heredoc source never echoes: {joined}"
+        !text.contains("from pathlib"),
+        "heredoc source never renders: {text}"
     );
     assert!(
-        joined.contains("⋯ +20 output lines"),
-        "long output clamps to its error-anchored tail with a count: {joined}"
+        !text.contains("phase=step"),
+        "output never renders in focus mode: {text}"
     );
     assert!(
-        joined.contains("result=failed status=1"),
-        "the trailing failure summary stays visible: {joined}"
+        lines
+            .iter()
+            .all(|line| crate::line_truncation::line_width(line) <= 80),
+        "the row fits the viewport width"
     );
     assert!(
-        !joined.contains("phase=step1 "),
-        "early bookkeeping output is dropped: {joined}"
-    );
-    assert!(
-        joined.contains("✗ (1)"),
-        "the exit footer stays visible: {joined}"
+        lines[0].spans.iter().all(|span| span
+            .style
+            .add_modifier
+            .contains(ratatui::style::Modifier::DIM)),
+        "failure rows render at the working-status level"
     );
 }
 
@@ -156,28 +157,25 @@ fn exec_call(
 }
 
 #[test]
-fn mixed_cells_condense_successful_siblings_of_failures() {
+fn mixed_cells_render_one_row_per_call() {
     let cell = crate::exec_cell::ExecCell::new(
         exec_call(
             "cat-ok",
             "cat test/order_matrix/test_suite_candidates.py",
             /*exit_code*/ 0,
-            (1..=90)
-                .map(|i| format!("source line {i} of the file"))
-                .collect::<Vec<_>>()
-                .join("\n"),
+            "file body".to_owned(),
         ),
         /*animations_enabled*/ false,
     );
-    // Attach a failed sibling to the same group the way multi-call cells are built.
     let mut cell = cell;
     cell.group.calls.push(exec_call(
         "pytest-fail",
         "bin/isolated-full-test",
         /*exit_code*/ 1,
-        "phase=preflight result=passed\nresult=failed status=1\n".to_owned(),
+        "result=failed status=1".to_owned(),
     ));
-    let lines = exec_focus_lines(&cell, /*width*/ 80);
+    let lines = exec_focus_lines(&cell, /*width*/ 100);
+    assert_eq!(lines.len(), 2, "one row per call in a mixed cell");
     let joined = lines
         .iter()
         .map(ToString::to_string)
@@ -185,102 +183,14 @@ fn mixed_cells_condense_successful_siblings_of_failures() {
         .join("\n");
     assert!(
         joined.contains("Ran 'cat test/order_matrix/test_suite_candidates.py'"),
-        "the successful sibling condenses to its one-liner: {joined}"
+        "the successful call keeps its one-liner: {joined}"
     );
     assert!(
-        !joined.contains("source line 1 of the file"),
-        "successful sibling output never renders: {joined}"
+        joined.contains("✗") && joined.contains("bin/isolated-full-test"),
+        "the failed call keeps its one-liner with the failure marker: {joined}"
     );
     assert!(
-        joined.contains("$ bin/isolated-full-test"),
-        "the failed call keeps its command line: {joined}"
+        !joined.contains("result=failed"),
+        "no output renders for either call: {joined}"
     );
-    assert!(
-        joined.contains("✗ (1)"),
-        "the failed call keeps its exit footer: {joined}"
-    );
-}
-
-#[test]
-fn failed_chain_output_anchors_to_the_error_line() {
-    let output = [
-        "useful tail of the successful first command".to_owned(),
-        "    print(rendered, end='')".to_owned(),
-        String::new(),
-        "if __name__ == '__main__':".to_owned(),
-        "sed: can't read docs/testing/order-matrix/source-freeze.md: No such file or directory"
-            .to_owned(),
-    ]
-    .join("\n");
-    let cell = crate::exec_cell::ExecCell::new(
-        exec_call(
-            "chain-fail",
-            "tail -n 65 test/order_matrix/pin_applications.py; sed -n '1,150p' docs/testing/order-matrix/source-freeze.md",
-            /*exit_code*/ 2,
-            output,
-        ),
-        /*animations_enabled*/ false,
-    );
-    let lines = exec_focus_lines(&cell, /*width*/ 100);
-    let joined = lines
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join("\n");
-    assert!(
-        joined.contains("sed: can't read docs/testing/order-matrix/source-freeze.md"),
-        "the error line stays visible: {joined}"
-    );
-    assert!(
-        joined.contains("⋯ +4 output lines"),
-        "successful sibling output is counted, not shown: {joined}"
-    );
-    assert!(
-        !joined.contains("print(rendered"),
-        "the successful command's output never renders: {joined}"
-    );
-    assert!(joined.contains("✗ (2)"), "the exit footer stays: {joined}");
-}
-
-#[test]
-fn failed_command_echo_fits_one_visual_row() {
-    let command = "rg --files /home/anotherdave/Windows/jse-build/gitrepos/jsechallenge -g Rules.aspx; \\
-sed -n '1,142p' app/models/university/financial_batch.rb; \\
-sed -n '1,95p' app/models/cash_postings/distribution.rb; \\
-sed -n '1,105p' app/models/orders/execute_due.rb";
-    let cell = crate::exec_cell::ExecCell::new(
-        exec_call(
-            "chain-wide",
-            command,
-            /*exit_code*/ 2,
-            "sed: can't read app/models/orders/execute_due.rb: No such file or directory"
-                .to_owned(),
-        ),
-        /*animations_enabled*/ false,
-    );
-    let lines = exec_focus_lines(&cell, /*width*/ 60);
-    let joined = lines
-        .iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join("\n");
-    assert!(
-        joined.contains("sed: can't read app/models/orders/execute_due.rb"),
-        "the error stays: {joined}"
-    );
-    let command_rows = lines
-        .iter()
-        .filter(|line| line.to_string().contains("sed -n") || line.to_string().contains("rg"))
-        .count();
-    assert!(
-        command_rows <= 1,
-        "the wrapping chain renders as one row: {joined}"
-    );
-    assert!(
-        lines
-            .iter()
-            .all(|line| crate::line_truncation::line_width(line) <= 60),
-        "no row exceeds the viewport width"
-    );
-    assert!(joined.contains("✗ (2)"), "the exit footer stays: {joined}");
 }

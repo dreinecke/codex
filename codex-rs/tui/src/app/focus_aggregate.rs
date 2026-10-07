@@ -58,12 +58,45 @@ impl FocusAggregateCell {
     }
 }
 
+/// Hushdex: cap how many failed-call one-liners render beneath the run summary.
+const FOCUS_AGGREGATE_FAILURE_LIMIT: usize = 5;
+
 impl HistoryCell for FocusAggregateCell {
     fn focus_lines(&self, width: u16) -> Vec<Line<'static>> {
-        vec![truncate_line_with_ellipsis_if_overflow(
+        let mut lines = vec![truncate_line_with_ellipsis_if_overflow(
             aggregate_line(&self.counts()),
             usize::from(width.max(/*other*/ 1)),
-        )]
+        )];
+        if self.counts().failures == 0 {
+            return lines;
+        }
+        // The run's failed calls keep their one-liners visible beneath the summary so the
+        // exit codes stay scannable; successful calls are already counted above them.
+        let mut shown = 0;
+        let mut hidden_failures = 0;
+        for part in &self.parts {
+            for line in part.focus_lines(width) {
+                let is_failure_line = line
+                    .spans
+                    .first()
+                    .is_some_and(|span| span.content.starts_with("✗"));
+                if !is_failure_line {
+                    continue;
+                }
+                if shown < FOCUS_AGGREGATE_FAILURE_LIMIT {
+                    lines.push(line);
+                    shown += 1;
+                } else {
+                    hidden_failures += 1;
+                }
+            }
+        }
+        if hidden_failures > 0 {
+            lines.push(Line::from(
+                format!("⋯ +{hidden_failures} more failed").dim(),
+            ));
+        }
+        lines
     }
 
     fn display_lines(&self, width: u16) -> Vec<Line<'static>> {
