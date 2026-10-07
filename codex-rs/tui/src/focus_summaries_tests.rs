@@ -241,3 +241,46 @@ fn failed_chain_output_anchors_to_the_error_line() {
     );
     assert!(joined.contains("✗ (2)"), "the exit footer stays: {joined}");
 }
+
+#[test]
+fn failed_command_echo_fits_one_visual_row() {
+    let command = "rg --files /home/anotherdave/Windows/jse-build/gitrepos/jsechallenge -g Rules.aspx; \\
+sed -n '1,142p' app/models/university/financial_batch.rb; \\
+sed -n '1,95p' app/models/cash_postings/distribution.rb; \\
+sed -n '1,105p' app/models/orders/execute_due.rb";
+    let cell = crate::exec_cell::ExecCell::new(
+        exec_call(
+            "chain-wide",
+            command,
+            /*exit_code*/ 2,
+            "sed: can't read app/models/orders/execute_due.rb: No such file or directory"
+                .to_owned(),
+        ),
+        /*animations_enabled*/ false,
+    );
+    let lines = exec_focus_lines(&cell, /*width*/ 60);
+    let joined = lines
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        joined.contains("sed: can't read app/models/orders/execute_due.rb"),
+        "the error stays: {joined}"
+    );
+    let command_rows = lines
+        .iter()
+        .filter(|line| line.to_string().contains("sed -n") || line.to_string().contains("rg"))
+        .count();
+    assert!(
+        command_rows <= 1,
+        "the wrapping chain renders as one row: {joined}"
+    );
+    assert!(
+        lines
+            .iter()
+            .all(|line| crate::line_truncation::line_width(line) <= 60),
+        "no row exceeds the viewport width"
+    );
+    assert!(joined.contains("✗ (2)"), "the exit footer stays: {joined}");
+}
