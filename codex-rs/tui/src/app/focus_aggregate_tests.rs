@@ -75,6 +75,7 @@ fn aggregate_line_phrases_match_claude_code_style() {
         patterns: 1,
         reads: 2,
         edits: 0,
+        failures: 0,
         images: 0,
         tools: 0,
         shells: 9,
@@ -88,6 +89,7 @@ fn aggregate_line_phrases_match_claude_code_style() {
         patterns: 0,
         reads: 1,
         edits: 3,
+        failures: 0,
         images: 2,
         tools: 2,
         shells: 1,
@@ -153,11 +155,14 @@ fn exec_counts_split_reads_searches_and_shell_commands() {
     assert_eq!(
         exec_activity_counts(&shell),
         Some(FocusActivityCounts {
+            failures: 0,
             shells: 1,
             ..FocusActivityCounts::default()
         })
     );
 
+    // Hushdex: failures count into the run instead of breaking it; the run line and
+    // the failed call's own one-liner both carry the signal.
     assert_eq!(
         exec_activity_counts(&exec_cell(
             "fail",
@@ -167,7 +172,11 @@ fn exec_counts_split_reads_searches_and_shell_commands() {
             }],
             /*exit_code*/ 2,
         )),
-        None
+        Some(FocusActivityCounts {
+            failures: 1,
+            shells: 1,
+            ..FocusActivityCounts::default()
+        })
     );
 
     // Exit 1 from a read-only command (rg with no matches at the end of a pipeline) is
@@ -196,7 +205,14 @@ fn exec_counts_split_reads_searches_and_shell_commands() {
         }],
         /*exit_code*/ 1,
     );
-    assert_eq!(exec_activity_counts(&real_failure), None);
+    assert_eq!(
+        exec_activity_counts(&real_failure),
+        Some(FocusActivityCounts {
+            failures: 1,
+            shells: 1,
+            ..FocusActivityCounts::default()
+        })
+    );
 }
 
 #[test]
@@ -345,13 +361,14 @@ async fn agent_messages_and_failures_close_runs_and_stay_full() {
         text.contains("Build finished."),
         "agent messages render in full and close runs:\n{text}"
     );
+    // The failed command after the message starts its own run line, counted with its failure.
     assert!(
-        !text.contains("Ran 2"),
-        "a failed command after a message joins no counted run:\n{text}"
+        text.contains("1 failed"),
+        "the failed command after a message reports its own failed run:\n{text}"
     );
     assert!(
-        text.contains("cargo test"),
-        "the failed command itself renders in full:\n{text}"
+        text.contains("cargo test") && text.contains("✗"),
+        "the failed command renders its one-liner with the failure marker:\n{text}"
     );
 
     // A new successful command after the failure opens a fresh run.
@@ -367,10 +384,16 @@ async fn agent_messages_and_failures_close_runs_and_stay_full() {
             /*exit_code*/ 0,
         )),
     );
-    assert_eq!(
-        tail_text(&app),
-        "Ran 1 shell command",
-        "run after the failure aggregates separately"
+    // Hushdex: failures count into the run instead of closing it — the trailing success
+    // merges, and the failed call keeps its one-liner beneath the summary.
+    let tail = tail_text(&app);
+    assert!(
+        tail.starts_with("Ran 2 shell commands, 1 failed"),
+        "success after a failure merges into the run:\n{tail}"
+    );
+    assert!(
+        tail.contains("✗ cargo test (exit 2)"),
+        "the failed call keeps its one-liner:\n{tail}"
     );
 }
 

@@ -72,6 +72,7 @@ pub(crate) struct FocusActivityCounts {
     pub(crate) patterns: usize,
     pub(crate) reads: usize,
     pub(crate) edits: usize,
+    pub(crate) failures: usize,
     pub(crate) images: usize,
     pub(crate) tools: usize,
     pub(crate) shells: usize,
@@ -85,6 +86,7 @@ impl std::ops::Add for FocusActivityCounts {
             patterns: self.patterns + rhs.patterns,
             reads: self.reads + rhs.reads,
             edits: self.edits + rhs.edits,
+            failures: self.failures + rhs.failures,
             images: self.images + rhs.images,
             tools: self.tools + rhs.tools,
             shells: self.shells + rhs.shells,
@@ -143,8 +145,15 @@ fn absorbable_exit(call: &ExecCall) -> bool {
 pub(crate) fn exec_activity_counts(cell: &ExecCell) -> Option<FocusActivityCounts> {
     let mut counts = FocusActivityCounts::default();
     for call in cell.iter_calls() {
-        if !absorbable_exit(call) || matches!(call.source, CommandExecutionSource::UserShell) {
+        if matches!(call.source, CommandExecutionSource::UserShell) {
             return None;
+        }
+        // Hushdex: failed calls count into the run instead of breaking it; each still
+        // renders its own one-liner so the exit code stays visible.
+        if !absorbable_exit(call) {
+            counts.failures += 1;
+            counts.shells += 1;
+            continue;
         }
         let mut shell_call = false;
         for parsed in &call.parsed {
@@ -217,6 +226,9 @@ pub(crate) fn aggregate_line(counts: &FocusActivityCounts) -> Line<'static> {
             plural(counts.shells, "command")
         ));
     }
+    if counts.failures > 0 {
+        phrases.push(format!("{} failed", counts.failures));
+    }
     let mut text = phrases.join(", ");
     let mut characters = text.chars();
     if let Some(first) = characters.next()
@@ -234,32 +246,41 @@ pub(crate) fn aggregate_line(counts: &FocusActivityCounts) -> Line<'static> {
 /// visible, and any user `!` shell command renders in full because its output is what the user
 /// explicitly asked to run.
 pub(crate) fn exec_focus_lines(cell: &ExecCell, width: u16) -> Vec<Line<'static>> {
-    let failed = cell.iter_calls().any(|call| !absorbable_exit(call));
-    let user_shell = cell
+    if cell
         .iter_calls()
-        .any(|call| matches!(call.source, CommandExecutionSource::UserShell));
-    if failed {
-        // Hushdex: per-call granularity inside a mixed cell — failed calls render the
-        // clamped failure form while successful siblings condense to their one-liners,
-        // so one failure cannot expand a whole successful run.
-        let mut lines = Vec::new();
-        for call in cell.iter_calls() {
-            if absorbable_exit(call) {
-                lines.push(success_call_line(call, width));
-            } else {
-                lines.extend(crate::terminal_hyperlinks::visible_lines(
-                    cell.focus_failure_call_hyperlink_lines(call, width),
-                ));
-            }
-        }
-        return lines;
-    }
-    if user_shell {
+        .any(|call| matches!(call.source, CommandExecutionSource::UserShell))
+    {
         return cell.display_lines(width);
     }
+    // Hushdex: every call condenses to one muted row — failures carry their exit code
+    // instead of rendering output; the full block stays in the transcript pager.
     cell.iter_calls()
-        .map(|call| success_call_line(call, width))
+        .map(|call| {
+            if absorbable_exit(call) {
+                success_call_line(call, width)
+            } else {
+                failure_call_line(call, width)
+            }
+        })
         .collect()
+}
+
+/// `✗ <command> (exit N)` — the failed-call one-liner, muted to the working-status level.
+fn failure_call_line(call: &ExecCall, width: u16) -> Line<'static> {
+    let exit_code = call
+        .output
+        .as_ref()
+        .map(|output| output.exit_code)
+        .unwrap_or_default();
+    let script = strip_bash_lc_and_escape(&call.command);
+    let first = script.lines().next().unwrap_or_default().to_string();
+    let mut line = Line::from(vec!["✗".red().bold(), " ".into()]);
+    let highlighted = highlight_bash_to_lines(&first);
+    if let Some(command) = highlighted.into_iter().next() {
+        line.extend(command.spans);
+    }
+    line.push_span(format!(" (exit {exit_code})").dim());
+    clipped(line, width)
 }
 
 /// `• Ran <command>` (or `• Running <command>` while in flight), muted to the working-status
