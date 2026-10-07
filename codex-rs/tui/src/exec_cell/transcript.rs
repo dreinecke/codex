@@ -146,29 +146,41 @@ fn push_call_hyperlink_lines(
     clamp_output_tail: Option<usize>,
 ) {
     let script = strip_bash_lc_and_escape(&call.command);
-    let omitted_source_lines = if clamp_command_echo {
-        script.lines().count().saturating_sub(1)
+    // Hushdex: the focus failure form clamps the command echo to ONE visual row — a long
+    // semicolon chain is a single logical line that would otherwise wrap across many rows.
+    if clamp_command_echo {
+        let omitted_source_lines = script.lines().count().saturating_sub(1);
+        let first = script.lines().next().unwrap_or_default().to_string();
+        let mut highlighted = highlight_bash_to_lines(&first);
+        let Some(mut head) = (if highlighted.is_empty() {
+            None
+        } else {
+            Some(highlighted.remove(0))
+        }) else {
+            return;
+        };
+        head.spans.insert(0, "$ ".magenta());
+        let marker_width = if omitted_source_lines > 0 {
+            " ⋯ +N source lines".len()
+        } else {
+            " ⋯".len()
+        };
+        let budget = (width as usize).saturating_sub(marker_width).max(1);
+        let mut head =
+            crate::line_truncation::truncate_line_with_ellipsis_if_overflow(head, budget);
+        if omitted_source_lines > 0 {
+            head.push_span(format!(" ⋯ +{omitted_source_lines} source lines").dim());
+        }
+        lines.push(HyperlinkLine::new(head));
     } else {
-        0
-    };
-    let script_echo = if clamp_command_echo {
-        script.lines().next().unwrap_or_default().to_string()
-    } else {
-        script
-    };
-    let highlighted_script = highlight_bash_to_lines(&script_echo);
-    let cmd_display = adaptive_wrap_hyperlink_lines(
-        &plain_hyperlink_lines(highlighted_script),
-        RtOptions::new(width as usize)
-            .initial_indent("$ ".magenta().into())
-            .subsequent_indent("    ".into()),
-    );
-    lines.extend(cmd_display);
-    if omitted_source_lines > 0 {
-        lines.push(HyperlinkLine::new(Line::from(vec![
-            "    ⋯ +".dim(),
-            format!("{omitted_source_lines} source lines").dim(),
-        ])));
+        let highlighted_script = highlight_bash_to_lines(&script);
+        let cmd_display = adaptive_wrap_hyperlink_lines(
+            &plain_hyperlink_lines(highlighted_script),
+            RtOptions::new(width as usize)
+                .initial_indent("$ ".magenta().into())
+                .subsequent_indent("    ".into()),
+        );
+        lines.extend(cmd_display);
     }
 
     let Some(output) = call.output.as_ref() else {
