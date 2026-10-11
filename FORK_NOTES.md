@@ -94,7 +94,11 @@ New files (fork-owned): `codex-rs/tui/src/focus.rs`, `codex-rs/tui/src/focus_sum
 `codex-rs/tui/src/user_band.rs` (accented user band for prompts and the composer),
 `codex-rs/tui/src/herdr.rs` + `herdr_tests.rs` (Herdr pane-agent reporter: env-gated
 singleton, background worker with latest-wins coalescing, state/resume/release via
-`$HERDR_BIN_PATH`, monotonic wall-clock seq, no-ops outside Herdr and in test builds),
+`$HERDR_BIN_PATH`, monotonic wall-clock seq, no-ops outside Herdr and in test builds).
+Reports identify as `--agent codex` (herdr's codex manifest drives prompts/nudges; custom
+self-reported names get state but `agent_not_ready` on prompts) with `--source hushdex`;
+`scripts/install-hushdex.sh` installs a PATH wrapper that presets `HERDR_AGENT=codex`
+(explicit env wins) so herdr detects the pane as codex out of the box.
 `tui/tests/suite/herdr_reporting.rs` (PTY tests: real binary reports state and release to a
 fake Herdr CLI; silent without the pane environment).
 

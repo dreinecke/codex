@@ -269,7 +269,7 @@ fn report_state(
         .arg("--source")
         .arg("hushdex")
         .arg("--agent")
-        .arg("hushdex")
+        .arg("codex")
         .arg("--state")
         .arg(state.as_str())
         .arg("--seq")
@@ -300,7 +300,7 @@ fn report_release(pane_id: &str, herdr_bin: &PathBuf) {
         .arg("--source")
         .arg("hushdex")
         .arg("--agent")
-        .arg("hushdex")
+        .arg("codex")
         .arg("--seq")
         .arg(next_seq().to_string());
     run_with_timeout(command);

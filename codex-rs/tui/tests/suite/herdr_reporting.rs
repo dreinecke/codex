@@ -96,10 +96,7 @@ fn herdr_pane_receives_state_and_release_reports() -> Result<()> {
                 terminal.screen_contents()
             )
         });
-    assert!(
-        state.contains("--source hushdex --agent hushdex"),
-        "{state}"
-    );
+    assert!(state.contains("--source hushdex --agent codex"), "{state}");
     assert!(
         state.contains("--state idle") || state.contains("--state working"),
         "the first report carries an observed state: {state}"
