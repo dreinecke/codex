@@ -19,14 +19,17 @@ cargo build --release --manifest-path "${repo_root}/codex-rs/Cargo.toml" --packa
 
 mkdir -p "${install_dir}" "${libexec_dir}"
 install -m 0755 "${repo_root}/codex-rs/target/release/codex" "${libexec_dir}/hushdex"
-cat > "${install_dir}/hushdex" <<'WRAPPER'
+# Replace atomically: overwriting in place fails with ETXTBSY while a pane runs the launcher.
+wrapper_tmp="$(mktemp "${install_dir}/.hushdex-wrapper.XXXXXX")"
+cat > "${wrapper_tmp}" <<'WRAPPER'
 #!/bin/sh
 # Hushdex launcher: present to herdr as the Codex agent this binary forks.
 HERDR_AGENT="${HERDR_AGENT:-codex}"
 export HERDR_AGENT
 exec "${HOME}/.local/libexec/hushdex/hushdex" "$@"
 WRAPPER
-chmod 0755 "${install_dir}/hushdex"
+chmod 0755 "${wrapper_tmp}"
+mv -f "${wrapper_tmp}" "${install_dir}/hushdex"
 
 echo "Installed ${install_dir}/hushdex (binary: ${libexec_dir}/hushdex)"
 echo "Make sure ${install_dir} is on your PATH."
