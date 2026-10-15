@@ -2,9 +2,9 @@
 source: tui/src/chatwidget/tests/popups_and_settings.rs
 expression: popup
 ---
-      Upload logs?
-› As
-      The following files will be sent:
+▌     Upload logs?
+▌ As
+▌     The following files will be sent:
   GP    • codex-logs.log
         • client-logs.txt (if available)
         • codex-doctor-report.json

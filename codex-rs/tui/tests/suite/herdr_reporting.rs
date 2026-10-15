@@ -8,7 +8,6 @@ use super::focus_palette::PtyCodex;
 use super::focus_palette::write_test_config;
 use anyhow::Result;
 use std::io::Write;
-use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::time::Instant;

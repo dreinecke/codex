@@ -9,9 +9,9 @@ expression: "render_bottom_popup(&chat, 40)"
     thread. Any file changes or
     other actions already taken will
     remain.
-
-›   Your message will be sent again
-    using Faster Model, which may be
+▌
+▌   Your message will be sent again
+▌   using Faster Model, which may be
     less capable on complex tasks.
 
 

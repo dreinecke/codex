@@ -6,9 +6,9 @@ expression: "render_bottom_popup(&chat, 80)"
   └                                                                         ry
       This will stop the current attempt and retry in a new thread. Any     .
       file changes or other actions already taken will remain.
-
-› As  Your message will be sent again using Faster Model, which may be
-      less capable on complex tasks.
+▌
+▌ As  Your message will be sent again using Faster Model, which may be
+▌     less capable on complex tasks.
   gp
 
     › 1. Keep waiting

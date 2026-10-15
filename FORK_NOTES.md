@@ -7,8 +7,8 @@ automated rebases safe. Read it top to bottom before rebasing.
 
 ## Base release and default TUI
 
-- **Base tag: `rust-v0.160.0`** (latest stable upstream release; rebased from `rust-v0.159.2`
-  on 2026-10-03).
+- **Base tag: `rust-v0.162.1`** (latest stable upstream release; rebased from `rust-v0.160.0`
+  on 2026-10-15).
 - **Default TUI crate: `codex-rs/tui` (crate `codex-tui`).** The `codex` binary lives in
   `codex-rs/cli` and launches the TUI through `run_interactive_tui` (see
   `codex-rs/cli/src/main.rs`). Upstream's older parallel TUIs (`tui2`, `tui_app_server`) no
@@ -63,7 +63,7 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/app/resize_reflow.rs` | 5 call sites route through the focus-aware helper. |
 | `codex-rs/tui/src/app/owned_transcript.rs` | Per-frame sync of focus state into the owned transcript view (+1 line). |
 | `codex-rs/tui/src/transcript_view.rs` | `focus` field + `set_focus_mode` (cache-invalidating) + fork test module. |
-| `codex-rs/tui/src/transcript_view/layout.rs` | `CellPresentation.focus` cache key; committed cells render `focus_lines` when focused. |
+| `codex-rs/tui/src/transcript_view/layout.rs` | `CellPresentation.focus` cache key; committed cells render `focus_lines` when focused (and not temporarily expanded by Find). |
 | `codex-rs/tui/src/transcript_view/layout_tests.rs` | `focus: false` in `CellPresentation` test literals (+3 lines). |
 | `codex-rs/tui/src/chatwidget.rs` | `focus_mode: bool` field on `ChatWidget` (+1 line). |
 | `codex-rs/tui/src/chatwidget/constructor.rs` | Initialize `focus_mode` from `focus::default_enabled()` (+1 line). |
@@ -109,7 +109,8 @@ blank once the bar is stripped), `insert_history.rs` tests (same), `chatwidget/r
 banded context row), plus inline-snapshot updates in `agents_overview_tests.rs`,
 `background_task_defaults_tests.rs`, `key_chords.rs`, `startup_defaults_tests.rs`,
 `turn_submission.rs`, `disconnect_tests.rs`, `request_user_input/mod.rs`,
-`recording_controls_tests.rs`, and `replay_render_tests.rs`.
+`recording_controls_tests.rs`, `replay_render_tests.rs`, `app/tests.rs`, and
+`transcript_view/copy_mode_tests.rs`.
 
 Testing notes:
 - Band snapshots were converged under the canonical runner (`just test`, i.e. nextest, one
@@ -188,11 +189,12 @@ condensed).
   read-only command from `BENIGN_EXIT_1_LEADS` in `focus_summaries.rs` (cat/rg/grep/tail/git/…,
   skipping `cd` segments). Exit 1 from anything else (pytest, cargo, …) renders in full.
 - **Fullscreen (owned-screen) mode — the TUI default — condenses too.** The owned transcript
-  renders committed cells through `TranscriptView::current_layout` in
+  renders committed cells through `TranscriptView::entry_layout` in
   `tui/src/transcript_view/layout.rs`; when focus is on, those cells render `focus_lines`
   instead of the compact/retained presentation, and disclosure affordances
   (`+ Show details` / `+ N lines`) are suppressed. The live tail (in-flight cell), detailed
-  browsing (the details mode), raw output mode, and the `Ctrl+T` overlay keep full rendering.
+  browsing (the details mode), Find's temporary entry expansion (`full_content`), raw output
+  mode, and the `Ctrl+T` overlay keep full rendering.
   The `focus_layout_tests` module pins this behavior and fails loudly if upstream moves the
   layout path.
 - **Run aggregation (Claude Code style).** Consecutive absorbable tool cells merge into one

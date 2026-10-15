@@ -145,3 +145,17 @@ fn hidden_cell_produces_no_rows_or_separator_under_focus() {
         .expect("layout for reasoning cell");
     assert_eq!(layout.row_count(), 0, "hidden cells render no rows");
 }
+
+#[test]
+fn full_content_entry_layout_overrides_focus_for_find() {
+    let cells = fixture_cells();
+    let mut view = view_with(/*focus*/ true);
+    let layout = view
+        .entry_layout(&cells, /*index*/ 3, /*full_content*/ true)
+        .expect("full-content layout for exec cell");
+    assert!(
+        layout.text().contains("Compiling hushdex"),
+        "Find expansion must bypass focus condensation:\n{}",
+        layout.text()
+    );
+}

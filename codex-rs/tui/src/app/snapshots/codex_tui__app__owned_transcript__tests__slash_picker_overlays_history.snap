@@ -11,8 +11,8 @@ Transcript row 34: content behind the menu
   /memories  configure memory use and generation
   /mention   mention a file
   /mcp       list MCP tools; use /mcp verbose or /mcp login <name>
-
-› /m
-
+▌
+▌ /m
+▌
   gpt-test default · /tmp/project
   model high · fast

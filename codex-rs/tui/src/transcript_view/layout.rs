@@ -169,9 +169,11 @@ impl TranscriptView {
         // Focus mode condenses committed cells the same way terminal scrollback is condensed.
         // Detailed browsing, Find expansion (`full_content`), and raw mode override it; the live
         // tail never passes through here.
-        let focus = self.focus && !full_content && !self.detailed && mode == HistoryRenderMode::Rich;
+        let focus =
+            self.focus && !full_content && !self.detailed && mode == HistoryRenderMode::Rich;
         let ids = cell.activity_ids();
-        let disclosure = !focus && !self.detailed && mode == HistoryRenderMode::Rich && !ids.is_empty();
+        let disclosure =
+            !focus && !self.detailed && mode == HistoryRenderMode::Rich && !ids.is_empty();
         let manually_expanded = self.disclosure.is_expanded(&ids);
         let expanded = disclosure && (full_content || manually_expanded);
         if manually_expanded {

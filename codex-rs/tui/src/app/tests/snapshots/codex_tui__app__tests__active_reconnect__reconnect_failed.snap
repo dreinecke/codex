@@ -4,7 +4,7 @@ expression: "render_bottom_popup(&app.chat_widget, 80)"
 ---
 • Reconnect failed — check the endpoint, then relaunch (0s)
 
-
-› Ask Codex to do anything
-
+▌
+▌ Ask Codex to do anything
+▌
   ⌃c quit

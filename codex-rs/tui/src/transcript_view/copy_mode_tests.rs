@@ -74,7 +74,7 @@ fn navigate_copy_resize_and_exit() {
             .any(|cell| cell.modifier.contains(ratatui::style::Modifier::REVERSED))
     );
     insta::assert_snapshot!(text(&buffer), @"
-    › User text > user quote ``` user code ```
+    ▌ User text > user quote ``` user code ```
 
       Latest plan
 
