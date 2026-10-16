@@ -82,7 +82,7 @@ fn aggregate_line_phrases_match_claude_code_style() {
     };
     assert_eq!(
         aggregate_line(&counts).to_string(),
-        "Searched for 1 pattern, read 2 files, ran 9 shell commands"
+        "  Searched for 1 pattern, read 2 files, ran 9 shell commands"
     );
 
     let counts = FocusActivityCounts {
@@ -96,14 +96,14 @@ fn aggregate_line_phrases_match_claude_code_style() {
     };
     assert_eq!(
         aggregate_line(&counts).to_string(),
-        "Read 1 file, edited 3 files, viewed 2 images, called 2 tools, ran 1 shell command"
+        "  Read 1 file, edited 3 files, viewed 2 images, called 2 tools, ran 1 shell command"
     );
 
     let counts = FocusActivityCounts {
         tools: 1,
         ..FocusActivityCounts::default()
     };
-    assert_eq!(aggregate_line(&counts).to_string(), "Called 1 tool");
+    assert_eq!(aggregate_line(&counts).to_string(), "  Called 1 tool");
 }
 
 #[test]
@@ -239,7 +239,7 @@ fn aggregate_renders_one_dim_line_for_a_run() {
     assert_eq!(lines.len(), 1, "one line per run");
     assert_eq!(
         lines_to_string(&lines),
-        "Ran 2 shell commands",
+        "  Ran 2 shell commands",
         "aggregate phrasing"
     );
 
@@ -272,7 +272,7 @@ async fn consecutive_tool_cells_collapse_into_one_scrollback_line() {
             /*exit_code*/ 0,
         )),
     );
-    assert_eq!(pending_text(&tui), "Ran 1 shell command");
+    assert_eq!(pending_text(&tui), "  Ran 1 shell command");
 
     app.insert_history_cell(
         &mut tui,
@@ -299,7 +299,7 @@ async fn consecutive_tool_cells_collapse_into_one_scrollback_line() {
     // bookkeeping now owns the merged line.
     assert_eq!(
         tail_text(&app),
-        "Ran 2 shell commands",
+        "  Ran 2 shell commands",
         "aggregate counts both commands and rewrites in place"
     );
     assert!(
@@ -388,7 +388,7 @@ async fn agent_messages_and_failures_close_runs_and_stay_full() {
     // merges, and the failed call keeps its one-liner beneath the summary.
     let tail = tail_text(&app);
     assert!(
-        tail.starts_with("Ran 2 shell commands, 1 failed"),
+        tail.starts_with("  Ran 2 shell commands, 1 failed"),
         "success after a failure merges into the run:\n{tail}"
     );
     assert!(
@@ -453,7 +453,7 @@ async fn prompts_and_patches_aggregate_by_category() {
 
     assert_eq!(
         tail_text(&app),
-        "Edited 2 files, called 1 tool",
+        "  Edited 2 files, called 1 tool",
         "patches and MCP calls aggregate by category"
     );
     let aggregate_cells: Vec<_> = app
@@ -467,7 +467,7 @@ async fn prompts_and_patches_aggregate_by_category() {
         .filter_map(|cell| cell.as_any().downcast_ref::<FocusAggregateCell>())
         .map(|cell| lines_to_string(&cell.focus_lines(/*width*/ 80)))
         .collect::<String>();
-    assert_eq!(aggregate_text, "Edited 2 files, called 1 tool");
+    assert_eq!(aggregate_text, "  Edited 2 files, called 1 tool");
 }
 
 #[tokio::test]
@@ -516,7 +516,7 @@ async fn hidden_lifecycle_and_stream_fragments_do_not_break_runs() {
 
     assert_eq!(
         tail_text(&app),
-        "Ran 2 shell commands",
+        "  Ran 2 shell commands",
         "hidden telemetry and stream fragments keep the run open"
     );
     let text = pending_text(&tui) + &tail_text(&app);
@@ -662,7 +662,7 @@ async fn owned_screen_resume_and_older_history_pages_merge_runs() {
     );
     assert_eq!(
         lines_to_string(&app.transcript_cells[0].focus_lines(/*width*/ 80)),
-        "Searched for 1 pattern, read 1 file"
+        "  Searched for 1 pattern, read 1 file"
     );
 
     // Prepending an older history page that ends in a tool run folds the page and joins across
@@ -704,7 +704,7 @@ async fn owned_screen_resume_and_older_history_pages_merge_runs() {
     );
     assert_eq!(
         lines_to_string(&app.transcript_cells[1].focus_lines(/*width*/ 80)),
-        "Searched for 1 pattern, read 1 file, ran 2 shell commands"
+        "  Searched for 1 pattern, read 1 file, ran 2 shell commands"
     );
     tui.set_owned_screen(/*owned*/ false)
         .expect("disable owned screen");

@@ -18,7 +18,7 @@ fn aggregate_lines_render_at_the_working_status_level() {
         ..FocusActivityCounts::default()
     };
     let line = aggregate_line(&counts);
-    assert_eq!(line.to_string(), "Read 3 files, ran 1 shell command");
+    assert_eq!(line.to_string(), "  Read 3 files, ran 1 shell command");
     assert!(
         spans_are_dimmed(&line),
         "aggregate spans carry the dim modifier: {line:?}"

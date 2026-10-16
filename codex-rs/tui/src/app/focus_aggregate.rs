@@ -93,7 +93,7 @@ impl HistoryCell for FocusAggregateCell {
         }
         if hidden_failures > 0 {
             lines.push(Line::from(
-                format!("⋯ +{hidden_failures} more failed").dim(),
+                format!("  ⋯ +{hidden_failures} more failed").dim(),
             ));
         }
         lines

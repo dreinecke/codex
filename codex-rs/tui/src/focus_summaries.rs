@@ -293,7 +293,7 @@ pub(crate) fn aggregate_line(counts: &FocusActivityCounts) -> Line<'static> {
     {
         text = first.to_uppercase().collect::<String>() + characters.as_str();
     }
-    mute(Line::from(text))
+    mute(Line::from(format!("  {text}")))
 }
 
 /// `• Ran <command>` per call (or `• Running <command>` while a call is in flight).
