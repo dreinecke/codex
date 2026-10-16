@@ -129,7 +129,7 @@ async fn voice_preserves_the_normal_composer_prompt() {
     chat.thread_id = Some(thread_id);
     chat.bottom_pane
         .set_composer_text("!".to_string(), Vec::new(), Vec::new());
-    // Hushdex: the band paints its bar on blank context rows above the prompt row, so the
+    // Nutshell: the band paints its bar on blank context rows above the prompt row, so the
     // bash glyph is asserted where it renders instead of as the popup's first glyph.
     {
         chat.update_realtime_footer();

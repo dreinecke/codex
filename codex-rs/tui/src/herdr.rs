@@ -1,7 +1,7 @@
 //! Herdr agent reporting (fork-owned).
 //!
 //! Panes managed by Herdr inherit `HERDR_ENV=1`, `HERDR_PANE_ID`, `HERDR_BIN_PATH`, and
-//! `HERDR_SOCKET_PATH`. When those are present, Hushdex self-reports as an agent so pane-level
+//! `HERDR_SOCKET_PATH`. When those are present, Nutshell self-reports as an agent so pane-level
 //! features work: sidebar state, `herdr agent get/prompt/wait`, notifications, and session
 //! restore after a Herdr restart. Outside Herdr every call here is a no-op.
 //!
@@ -196,7 +196,7 @@ impl HerdrAgent {
         let herdr_bin = self.herdr_bin.clone();
         let shared = Arc::clone(&self.shared);
         std::thread::Builder::new()
-            .name("hushdex-herdr".to_string())
+            .name("nutshell-herdr".to_string())
             .spawn(move || worker(pane_id, herdr_bin, shared))
             .ok();
     }
@@ -267,7 +267,7 @@ fn report_state(
         .arg("report-agent")
         .arg(pane_id)
         .arg("--source")
-        .arg("hushdex")
+        .arg("nutshell")
         .arg("--agent")
         .arg("codex")
         .arg("--state")
@@ -282,7 +282,7 @@ fn report_state(
         if resume_argv_safe(session_id) {
             command
                 .arg("--")
-                .arg("hushdex")
+                .arg("nutshell")
                 .arg("resume")
                 .arg("--yolo")
                 .arg(session_id);
@@ -298,7 +298,7 @@ fn report_release(pane_id: &str, herdr_bin: &PathBuf) {
         .arg("release-agent")
         .arg(pane_id)
         .arg("--source")
-        .arg("hushdex")
+        .arg("nutshell")
         .arg("--agent")
         .arg("codex")
         .arg("--seq")

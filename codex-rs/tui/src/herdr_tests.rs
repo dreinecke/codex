@@ -125,22 +125,22 @@ fn reports_reach_the_herdr_cli_with_protocol_arguments() {
     let blocked = lines[0];
     assert!(
         blocked.starts_with(
-            "pane report-agent pane-42 --source hushdex --agent codex --state blocked"
+            "pane report-agent pane-42 --source nutshell --agent codex --state blocked"
         )
     );
     assert!(blocked.contains("--message Approval needed"));
     assert!(
         blocked.contains(
             "--agent-session-id 9f0e6d52-1111-4bbb-8ccc-2ddd0000eeee -- \
-             hushdex resume --yolo 9f0e6d52-1111-4bbb-8ccc-2ddd0000eeee"
+             nutshell resume --yolo 9f0e6d52-1111-4bbb-8ccc-2ddd0000eeee"
         ),
         "blocked report carries the resume argv: {blocked}"
     );
     assert!(lines[1].contains("--state idle"));
-    assert!(!lines[1].contains("-- hushdex resume"));
+    assert!(!lines[1].contains("-- nutshell resume"));
     assert_eq!(
         lines[2].split(" --seq ").next(),
-        Some("pane release-agent pane-42 --source hushdex --agent codex")
+        Some("pane release-agent pane-42 --source nutshell --agent codex")
     );
     let first = seq_from(lines[0]).parse::<u128>();
     let last = seq_from(lines[2]).parse::<u128>();

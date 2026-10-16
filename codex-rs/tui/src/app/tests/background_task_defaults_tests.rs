@@ -906,7 +906,7 @@ async fn command_center_new_restores_blank_drafts_and_builtin_permissions() -> R
         app.chat_widget.composer_text_with_pending(),
         "Keep this unsent draft"
     );
-    // Hushdex: skip the band's bar-only context row to reach the prompt row.
+    // Nutshell: skip the band's bar-only context row to reach the prompt row.
     insta::assert_snapshot!(
         crate::chatwidget::tests::helpers::render_bottom_popup(&app.chat_widget, /*width*/ 80)
             .lines()

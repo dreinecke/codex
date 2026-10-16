@@ -731,7 +731,7 @@ async fn spoken_user_transcript_preserves_red_bar_and_canonical_history() {
     let (mut chat, _sender, mut events, _ops) = make_chatwidget_manual_with_sender().await;
     activate_voice(&mut chat);
     chat.on_realtime_transcript_delta("user".to_string(), " hello".to_string());
-    // Hushdex: spoken prompts mark themselves through the band bar; the split-flap
+    // Nutshell: spoken prompts mark themselves through the band bar; the split-flap
     // animation restyles settled graphemes, so the red color is asserted on the
     // canonical cell in `messages_tests` instead.
     assert!(

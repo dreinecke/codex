@@ -2523,7 +2523,7 @@ fn user_history_cell_trims_trailing_blank_message_lines() {
     let trailing_blank_count = rendered
         .iter()
         .rev()
-        // Hushdex: the band frame row is blank once the bar prefix is stripped.
+        // Nutshell: the band frame row is blank once the bar prefix is stripped.
         .take_while(|line| line.trim_start_matches('▌').trim().is_empty())
         .count();
     assert_eq!(trailing_blank_count, 1);
@@ -2548,7 +2548,7 @@ fn user_history_cell_trims_trailing_blank_message_lines_with_text_elements() {
     let trailing_blank_count = rendered
         .iter()
         .rev()
-        // Hushdex: the band frame row is blank once the bar prefix is stripped.
+        // Nutshell: the band frame row is blank once the bar prefix is stripped.
         .take_while(|line| line.trim_start_matches('▌').trim().is_empty())
         .count();
     assert_eq!(trailing_blank_count, 1);

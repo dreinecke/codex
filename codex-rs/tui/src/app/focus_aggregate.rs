@@ -1,4 +1,4 @@
-//! Claude-Code-style run aggregation for Hushdex focus mode.
+//! Claude-Code-style run aggregation for Nutshell focus mode.
 //!
 //! Consecutive absorbable tool cells merge into one `FocusAggregateCell` that renders a single
 //! dim line ("Searched for 2 patterns, read 5 files, ran 9 shell commands"). Merging rewrites
@@ -58,7 +58,7 @@ impl FocusAggregateCell {
     }
 }
 
-/// Hushdex: cap how many failed-call one-liners render beneath the run summary.
+/// Nutshell: cap how many failed-call one-liners render beneath the run summary.
 const FOCUS_AGGREGATE_FAILURE_LIMIT: usize = 5;
 
 impl HistoryCell for FocusAggregateCell {
@@ -319,7 +319,7 @@ fn trailing_aggregate_index(app: &App) -> Option<usize> {
 }
 
 fn trailing_aggregate_index_in(cells: &[Arc<dyn HistoryCell>]) -> Option<usize> {
-    // Hushdex: reasoning-heavy turns push many hidden cells between the aggregate and the
+    // Nutshell: reasoning-heavy turns push many hidden cells between the aggregate and the
     // next absorbable cell; a small window made consecutive runs emit adjacent aggregates
     // instead of merging. The scan stays cheap — pointer downcasts over hidden cells only.
     for (index, cell) in cells.iter().enumerate().rev().take(/*n*/ 64) {

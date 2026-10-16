@@ -927,7 +927,7 @@ mod tests {
         let message_rows = rows
             .iter()
             .enumerate()
-            // Hushdex: bar-only band frame rows count as blank.
+            // Nutshell: bar-only band frame rows count as blank.
             .filter(|(_, row)| !row.trim_start_matches('▌').trim().is_empty())
             .collect::<Vec<_>>();
 

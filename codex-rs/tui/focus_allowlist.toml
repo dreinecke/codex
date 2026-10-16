@@ -1,4 +1,4 @@
-# Hushdex focus-mode classification of every `HistoryCell` type in codex-tui.
+# Nutshell focus-mode classification of every `HistoryCell` type in codex-tui.
 #
 # full    = rendered unchanged in focus mode (default; no `focus_lines` override needed)
 # summary = condensed to one line per item by `focus_summaries.rs`

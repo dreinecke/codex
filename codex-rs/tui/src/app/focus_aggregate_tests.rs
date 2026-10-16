@@ -161,7 +161,7 @@ fn exec_counts_split_reads_searches_and_shell_commands() {
         })
     );
 
-    // Hushdex: failures count into the run instead of breaking it; the run line and
+    // Nutshell: failures count into the run instead of breaking it; the run line and
     // the failed call's own one-liner both carry the signal.
     assert_eq!(
         exec_activity_counts(&exec_cell(
@@ -384,7 +384,7 @@ async fn agent_messages_and_failures_close_runs_and_stay_full() {
             /*exit_code*/ 0,
         )),
     );
-    // Hushdex: failures count into the run instead of closing it — the trailing success
+    // Nutshell: failures count into the run instead of closing it — the trailing success
     // merges, and the failed call keeps its one-liner beneath the summary.
     let tail = tail_text(&app);
     assert!(

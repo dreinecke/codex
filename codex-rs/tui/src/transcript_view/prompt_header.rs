@@ -45,7 +45,7 @@ pub(super) fn line(
     } else {
         message
     };
-    // Hushdex: the pinned header mirrors the banded prompt so the top row matches the
+    // Nutshell: the pinned header mirrors the banded prompt so the top row matches the
     // original rendering, including the spoken bar color.
     let fill = crate::user_band::user_band_fill();
     Some(truncate_line_with_ellipsis_if_overflow(

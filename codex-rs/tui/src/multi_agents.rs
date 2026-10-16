@@ -314,7 +314,7 @@ pub(crate) fn sub_agent_activity_history_cell(item: &ThreadItem) -> Option<Box<d
     else {
         return None;
     };
-    // Hushdex: normal-case lifecycle telemetry is hidden in focus mode; `Interrupted` stays
+    // Nutshell: normal-case lifecycle telemetry is hidden in focus mode; `Interrupted` stays
     // visible because an interrupted agent is a failure signal.
     let hidden = !matches!(kind, SubAgentActivityKind::Interrupted);
     let cell = collab_event(sub_agent_activity_title(*kind, agent_path), Vec::new());

@@ -5,7 +5,7 @@ This project includes code derived from [Ratatui](https://github.com/ratatui/rat
 Copyright (c) 2016-2022 Florian Dehau
 Copyright (c) 2023-2025 The Ratatui Developers
 
-This fork ("Hushdex", branch `hushdex`) modifies codex-rs TUI sources to add a focus mode that
+This fork ("Nutshell", branch `nutshell`) modifies codex-rs TUI sources to add a focus mode that
 condenses transcript output. Changes are listed in FORK_NOTES.md. Not affiliated with or
 endorsed by OpenAI.
 Copyright 2026 David Reinecke

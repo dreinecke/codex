@@ -205,7 +205,7 @@ pub(crate) fn exec_activity_counts(cell: &ExecCell) -> Option<FocusActivityCount
         if matches!(call.source, CommandExecutionSource::UserShell) {
             return None;
         }
-        // Hushdex: failed calls count into the run instead of breaking it; each still
+        // Nutshell: failed calls count into the run instead of breaking it; each still
         // renders its own one-liner so the exit code stays visible.
         if !absorbable_exit(call) {
             counts.failures += 1;
@@ -309,7 +309,7 @@ pub(crate) fn exec_focus_lines(cell: &ExecCell, width: u16) -> Vec<Line<'static>
     {
         return cell.display_lines(width);
     }
-    // Hushdex: every call condenses to one muted row — failures carry their exit code
+    // Nutshell: every call condenses to one muted row — failures carry their exit code
     // instead of rendering output; the full block stays in the transcript pager.
     cell.iter_calls()
         .map(|call| {

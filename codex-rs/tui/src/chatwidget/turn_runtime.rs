@@ -49,7 +49,7 @@ impl ChatWidget {
 
     /// Report the observed agent state to Herdr when running inside a Herdr pane.
     ///
-    /// Hushdex (fork): a pending decision outranks a running turn, which outranks readiness.
+    /// Nutshell (fork): a pending decision outranks a running turn, which outranks readiness.
     pub(super) fn note_herdr_state(&self, message: Option<&str>) {
         crate::herdr::note_observed(
             self.bottom_pane.is_task_running(),

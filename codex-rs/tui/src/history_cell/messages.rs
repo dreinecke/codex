@@ -217,7 +217,7 @@ impl HistoryCell for UserHistoryCell {
         let mut lines = vec![HyperlinkLine::new(Line::from("").style(style))];
 
         if !wrapped_images.is_empty() {
-            // Hushdex: the user band's bar prefix frames every row of the block.
+            // Nutshell: the user band's bar prefix frames every row of the block.
             let bar = crate::user_band::bar_prefix_span(style, self.spoken);
             lines.extend(prefix_hyperlink_lines(
                 wrapped_images,
@@ -230,7 +230,7 @@ impl HistoryCell for UserHistoryCell {
         }
 
         if let Some(wrapped_message) = wrapped_message {
-            // Hushdex: the accent bar replaces the "›" chevron; spoken prompts keep their
+            // Nutshell: the accent bar replaces the "›" chevron; spoken prompts keep their
             // distinct marker through the bar color.
             let bar = crate::user_band::bar_prefix_span(style, self.spoken);
             lines.extend(prefix_hyperlink_lines(wrapped_message, bar.clone(), bar));

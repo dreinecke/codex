@@ -1,4 +1,4 @@
-//! Hushdex focus mode in the owned (fullscreen) transcript.
+//! Nutshell focus mode in the owned (fullscreen) transcript.
 //!
 //! The owned transcript is the default TUI surface, so focus must condense committed cells here
 //! exactly as it condenses terminal scrollback: prompts and agent text render in full, tool
@@ -45,7 +45,7 @@ fn fixture_cells() -> Vec<Arc<dyn HistoryCell>> {
             "exec-ok",
             CommandOutput::new(
                 /*exit_code*/ 0,
-                "   Compiling hushdex\n    Finished `dev`".to_string(),
+                "   Compiling nutshell\n    Finished `dev`".to_string(),
             ),
             std::time::Duration::from_millis(1_000),
         )
@@ -102,7 +102,7 @@ fn owned_transcript_condenses_committed_cells_under_focus() {
         "tool activity renders a one-line summary:\n{text}"
     );
     assert!(
-        !text.contains("Compiling hushdex"),
+        !text.contains("Compiling nutshell"),
         "successful command output must not leak into the focused transcript:\n{text}"
     );
     assert!(
@@ -121,7 +121,7 @@ fn owned_transcript_keeps_full_presentation_without_focus() {
     let text = rendered_text(&mut view_with(/*focus*/ false), &cells);
 
     assert!(
-        text.contains("Compiling hushdex"),
+        text.contains("Compiling nutshell"),
         "command output preview returns without focus:\n{text}"
     );
     assert!(
@@ -154,7 +154,7 @@ fn full_content_entry_layout_overrides_focus_for_find() {
         .entry_layout(&cells, /*index*/ 3, /*full_content*/ true)
         .expect("full-content layout for exec cell");
     assert!(
-        layout.text().contains("Compiling hushdex"),
+        layout.text().contains("Compiling nutshell"),
         "Find expansion must bypass focus condensation:\n{}",
         layout.text()
     );

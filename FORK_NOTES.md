@@ -1,6 +1,6 @@
-# Hushdex fork notes
+# Nutshell fork notes
 
-Hushdex = stock Codex CLI + a **focus mode** that condenses the live transcript to the user's
+Nutshell = stock Codex CLI + a **focus mode** that condenses the live transcript to the user's
 prompts, one-line summaries of tool activity (with diffstats for edits), and all agent messages.
 This file records the fork's base, the exact upstream touch points, and the checks that make
 automated rebases safe. Read it top to bottom before rebasing.
@@ -31,18 +31,18 @@ The plan's assumptions held, with these precise locations:
    - `tui/src/app/resize_reflow.rs` — `display_lines_for_history_insert` (the incremental
      insertion point), `render_transcript_lines_for_reflow` ×2 (resize/reflow rebuild), and
      `reflow_transcript_now` ×2 (post-reflow tail bookkeeping).
-   Hushdex routes all seven through one helper, `App::scrollback_cell_hyperlink_lines` in
+   Nutshell routes all seven through one helper, `App::scrollback_cell_hyperlink_lines` in
    `tui/src/focus.rs`, so insert-time rendering, resize reflow, and tail-repair always agree.
 3. **Transcript pager**: `tui/src/pager_overlay.rs` + `pager_overlay/transcript.rs` render full
    history from stored cells via the `transcript_lines`/`transcript_hyperlink_lines` trait
-   methods (opened with the `open_transcript` keybinding, default `Ctrl+T`). Hushdex never
+   methods (opened with the `open_transcript` keybinding, default `Ctrl+T`). Nutshell never
    touches those methods, so the pager stays the unfiltered "show everything" view.
 4. **Notable upstream behavior**: completed reasoning is already `transcript_only` upstream
    (`new_reasoning_summary_block`), i.e. hidden from scrollback in stock Codex; the transcript
-   pager still shows it. Hushdex's `hidden` classification for `ReasoningSummaryCell` makes this
+   pager still shows it. Nutshell's `hidden` classification for `ReasoningSummaryCell` makes this
    an explicit, guarded invariant instead of an implicit one.
 5. Upstream test file `tui/tests/suite/focus_palette.rs` is about *terminal focus events* —
-   unrelated to Hushdex focus mode, despite the name.
+   unrelated to Nutshell focus mode, despite the name.
 
 ## Every upstream file touched
 
@@ -97,8 +97,8 @@ New files (fork-owned): `codex-rs/tui/src/focus.rs`, `codex-rs/tui/src/focus_sum
 singleton, background worker with latest-wins coalescing, state/resume/release via
 `$HERDR_BIN_PATH`, monotonic wall-clock seq, no-ops outside Herdr and in test builds).
 Reports identify as `--agent codex` (herdr's codex manifest drives prompts/nudges; custom
-self-reported names get state but `agent_not_ready` on prompts) with `--source hushdex`;
-`scripts/install-hushdex.sh` installs a PATH wrapper that presets `HERDR_AGENT=codex`
+self-reported names get state but `agent_not_ready` on prompts) with `--source nutshell`;
+`scripts/install-nutshell.sh` installs a PATH wrapper that presets `HERDR_AGENT=codex`
 (explicit env wins) so herdr detects the pane as codex out of the box.
 `tui/tests/suite/herdr_reporting.rs` (PTY tests: real binary reports state and release to a
 fake Herdr CLI; silent without the pane environment).
@@ -127,7 +127,7 @@ Testing notes:
 `codex-rs/tui/src/transcript_view/focus_layout_tests.rs`,
 `codex-rs/tui/focus_allowlist.toml`,
 `codex-rs/tui/src/snapshots/codex_tui__focus__tests__*.snap` (generated),
-`scripts/install-hushdex.sh`, `FORK_NOTES.md` (this file).
+`scripts/install-nutshell.sh`, `FORK_NOTES.md` (this file).
 
 ## Classification table
 
@@ -172,11 +172,11 @@ condensed).
 
 ## Behavior notes
 
-- **Build identity**: `HUSHDEX_BUILD` in `tui/src/focus.rs` (format `YYYY-MM-DD.N`) identifies the
+- **Build identity**: `NUTSHELL_BUILD` in `tui/src/focus.rs` (format `YYYY-MM-DD.N`) identifies the
   fork build; it prints in the `/focus` notice because `--version` reports only the upstream
   number. Bump it in every fork commit that changes behavior, and record the mapping in the
   commit message.
-- Focus mode is **on by default**; `HUSHDEX_FOCUS=0` starts a session with focus off; `/focus`
+- Focus mode is **on by default**; `NUTSHELL_FOCUS=0` starts a session with focus off; `/focus`
   toggles it for the session and prints an info line naming the transcript-overlay key.
 - The toggle affects only cells inserted afterward; already-printed scrollback is not re-rendered
   (a resize reflow rebuild re-renders everything, and it applies the current focus state so the
@@ -217,10 +217,10 @@ condensed).
   focus condensation is suspended while it is active.
 - The live viewport (in-progress cells) keeps its normal rendering; the one-line summaries apply
   when the finished cell is committed to scrollback. In-progress work stays visible either way.
-- No `config.toml` keys were added. `HUSHDEX_FOCUS` is read once per session at ChatWidget
+- No `config.toml` keys were added. `NUTSHELL_FOCUS` is read once per session at ChatWidget
   construction.
 - Test builds (`cfg!(test)`) default focus **off** so upstream unit tests keep asserting full
-  scrollback output; Hushdex's own tests set the state explicitly. Integration tests that spawn
+  scrollback output; Nutshell's own tests set the state explicitly. Integration tests that spawn
   the real binary run with focus on (the product default) — they assert agent text and UI
   labels, which are always rendered in full.
 
@@ -237,11 +237,11 @@ just fix -p codex-tui    # before finalizing (do not re-run tests after fix/fmt)
 **Known pre-existing failures at release tags:** checking out a `rust-vX.Y.Z` tag builds with the
 workspace version from that tag (e.g. `0.159.2`), but the committed insta snapshots record
 `v0.0.0` (upstream main always carries `0.0.0`). About 38 snapshot tests therefore fail on the
-pristine tag itself — before and after the Hushdex patch, with the identical diff
+pristine tag itself — before and after the Nutshell patch, with the identical diff
 (`>_ OpenAI Codex (v0.0.0)` → `v0.159.2`). Do not accept those snapshots into the fork (it would
 bloat the patch and conflict on every rebase); instead verify the failing set matches the
 pristine-tag baseline and that no *new* failures appear. Unit tests also run with focus off by
-default (see above), so the Hushdex hook is a no-op in them.
+default (see above), so the Nutshell hook is a no-op in them.
 
 Snapshot workflow (if a snapshot intentionally changes): `just test -p codex-tui`, review
 `*.snap.new`, then `cargo insta accept -p codex-tui`.

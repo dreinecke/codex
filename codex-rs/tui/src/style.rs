@@ -104,7 +104,7 @@ pub(crate) fn accent_color() -> Color {
     accent_color_for(default_bg())
 }
 
-/// Hushdex: a runner-deterministic accent for painted surfaces (user-band bars).
+/// Nutshell: a runner-deterministic accent for painted surfaces (user-band bars).
 ///
 /// [`accent_color_for`] consults the effective stdout color level, which is a sticky
 /// thread-local under `cargo test` and unset under nextest; pinning the level keeps the

@@ -146,7 +146,7 @@ fn spoken_user_messages_have_a_red_bar_without_changing_raw_text() {
     let message = "  hello from voice";
     let spoken = new_spoken_user_prompt(message.to_string());
     let typed = new_user_prompt(message.to_string(), Vec::new(), Vec::new(), Vec::new());
-    // Hushdex: the user band's accent bar replaces the "›" chevron; spoken prompts keep a
+    // Nutshell: the user band's accent bar replaces the "›" chevron; spoken prompts keep a
     // red bar while typed prompts use the accent color.
     let marker = spoken
         .display_hyperlink_lines(/*width*/ 40)

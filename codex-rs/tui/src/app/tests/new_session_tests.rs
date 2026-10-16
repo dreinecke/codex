@@ -121,7 +121,7 @@ async fn new_session_preserves_vim_line_yank() -> Result<()> {
     );
     let composer_lines = render_bottom_popup(&app.chat_widget, /*width*/ 80)
         .lines()
-        // Hushdex: the composer's banded context row is no longer blank, so include it.
+        // Nutshell: the composer's banded context row is no longer blank, so include it.
         .take(3)
         .collect::<Vec<_>>()
         .join("\n");

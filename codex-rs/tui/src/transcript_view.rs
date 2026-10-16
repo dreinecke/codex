@@ -102,7 +102,7 @@ pub(crate) struct TranscriptView {
     live_continuation: bool,
     area: Rect,
     suppressed_prompt_header: Option<prompt_header::SuppressedHeader>,
-    /// Hushdex focus mode: committed cells render `focus_lines` instead of compact/retained
+    /// Nutshell focus mode: committed cells render `focus_lines` instead of compact/retained
     /// presentations. The live tail, detailed browsing, raw mode, and the Ctrl+T overlay are
     /// unaffected.
     focus: bool,
@@ -374,7 +374,7 @@ impl TranscriptView {
         self.mode = mode;
     }
 
-    /// Sync Hushdex focus mode; toggling invalidates cached layouts.
+    /// Sync Nutshell focus mode; toggling invalidates cached layouts.
     pub(crate) fn set_focus_mode(&mut self, enabled: bool) {
         if self.focus == enabled {
             return;

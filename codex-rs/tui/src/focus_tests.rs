@@ -1,4 +1,4 @@
-//! Drift guards, fixture snapshots, and assertions for Hushdex focus mode.
+//! Drift guards, fixture snapshots, and assertions for Nutshell focus mode.
 //!
 //! These tests keep automated upstream rebases safe:
 //! - `focus_allowlist_is_complete` fails when a `HistoryCell` type is unclassified, stale, or
@@ -83,7 +83,7 @@ fn fixture_cells() -> FixtureCells {
             "exec-ok",
             CommandOutput::new(
                 /*exit_code*/ 0,
-                "   Compiling hushdex\n    Finished `dev`".to_string(),
+                "   Compiling nutshell\n    Finished `dev`".to_string(),
             ),
             std::time::Duration::from_millis(1_200),
         )
@@ -94,7 +94,7 @@ fn fixture_cells() -> FixtureCells {
             "exec-fail",
             CommandOutput::new(
                 /*exit_code*/ 2,
-                "error: could not compile `hushdex` due to 3 previous errors".to_string(),
+                "error: could not compile `nutshell` due to 3 previous errors".to_string(),
             ),
             std::time::Duration::from_millis(3_400),
         )
@@ -295,7 +295,7 @@ fn focus_output_keeps_agent_text_verbatim_and_hides_reasoning() {
 fn failed_command_renders_in_full_with_exit_code() {
     let cells = fixture_cells();
     let focus_lines = cells.command_failed.focus_lines(WIDTH);
-    // Hushdex: failures condense to one muted row carrying the command and exit code;
+    // Nutshell: failures condense to one muted row carrying the command and exit code;
     // the full block (command, output, footer) stays in the transcript pager.
     assert_eq!(
         focus_lines.len(),
@@ -416,8 +416,8 @@ fn focus_notice_names_state_and_transcript_key() {
     let (on_message, on_hint) = crate::focus::focus_notice(true);
     assert!(on_message.starts_with("Focus mode on"), "{on_message}");
     assert!(
-        on_message.contains(crate::focus::HUSHDEX_BUILD),
-        "notice identifies the hushdex build:\n{on_message}"
+        on_message.contains(crate::focus::NUTSHELL_BUILD),
+        "notice identifies the nutshell build:\n{on_message}"
     );
     let hint = on_hint.expect("notice hints at the transcript key");
     assert!(hint.contains("full transcript"), "{hint}");
@@ -425,8 +425,8 @@ fn focus_notice_names_state_and_transcript_key() {
     let (off_message, _) = crate::focus::focus_notice(false);
     assert!(off_message.starts_with("Focus mode off"), "{off_message}");
     assert!(
-        off_message.contains(crate::focus::HUSHDEX_BUILD),
-        "notice identifies the hushdex build:\n{off_message}"
+        off_message.contains(crate::focus::NUTSHELL_BUILD),
+        "notice identifies the nutshell build:\n{off_message}"
     );
 }
 

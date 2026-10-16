@@ -1160,7 +1160,7 @@ async fn run_ratatui_app(
     let workload_identity_selected = is_workload_identity_selected();
     color_eyre::install()?;
 
-    // Hushdex (fork): hold the Herdr pane before any interactive startup phase (resume
+    // Nutshell (fork): hold the Herdr pane before any interactive startup phase (resume
     // picker, trust dialogs, onboarding) so the agent is visible from the first moments.
     crate::herdr::note_observed(/*running*/ false, /*blocked*/ false, None, None);
 
@@ -2063,7 +2063,7 @@ async fn run_ratatui_app(
 
     // Keep the large event-loop future out of the enclosing startup futures so session
     // transitions have enough stack headroom to rebuild configuration and the chat widget.
-    // Hushdex (fork): hold the Herdr pane from the first moments of the session.
+    // Nutshell (fork): hold the Herdr pane from the first moments of the session.
     crate::herdr::note_observed(/*running*/ false, /*blocked*/ false, None, None);
     let app_result = Box::pin(App::run(
         &mut tui,
@@ -2096,7 +2096,7 @@ async fn run_ratatui_app(
     terminal_restore_guard.restore_silently();
     // Mark the end of the recorded session.
     session_log::log_session_end();
-    // Hushdex (fork): the pane's agent is gone; release it with Herdr before exiting.
+    // Nutshell (fork): the pane's agent is gone; release it with Herdr before exiting.
     crate::herdr::release();
     // ignore error when collecting usage – report underlying error instead
     app_result

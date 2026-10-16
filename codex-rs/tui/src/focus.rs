@@ -1,11 +1,11 @@
-//! Hushdex focus mode: condense terminal scrollback to prompts, tool summaries, and agent text.
+//! Nutshell focus mode: condense terminal scrollback to prompts, tool summaries, and agent text.
 //!
 //! Focus mode changes only the lines written to terminal scrollback above the live viewport. It
 //! picks `HistoryCell::focus_lines` instead of the display presentation when a committed cell is
 //! inserted or re-rendered for scrollback. The transcript pager (`Ctrl+T`), the live viewport,
 //! raw output mode, copy, and export are unaffected; they keep using the full presentation.
 //!
-//! The toggle is session-local: `/focus` flips it, `HUSHDEX_FOCUS=0` starts a session with focus
+//! The toggle is session-local: `/focus` flips it, `NUTSHELL_FOCUS=0` starts a session with focus
 //! off, and no `config.toml` key exists. Toggling never rewrites scrollback that is already
 //! printed; it only affects cells inserted afterward. Resize reflow rebuilds scrollback from
 //! source cells and applies the current focus state so rebuilt rows stay consistent with
@@ -19,32 +19,34 @@ use crate::terminal_hyperlinks::HyperlinkLine;
 use crate::terminal_hyperlinks::plain_hyperlink_lines;
 use ratatui::text::Line;
 
-/// Identity of this Hushdex build: the date and sequence of fork changes that day.
+/// Identity of this Nutshell build: the date and sequence of fork changes that day.
 /// Bump this in every fork commit that changes behavior; it prints in the `/focus` notice so a
-/// running session can identify itself (`hushdex --version` only reports the upstream number).
-pub(crate) const HUSHDEX_BUILD: &str = "2026-10-16.2";
+/// running session can identify itself (`nutshell --version` only reports the upstream number).
+pub(crate) const NUTSHELL_BUILD: &str = "2026-10-16.3";
 
 /// Whether new sessions start with focus mode on.
 ///
-/// `HUSHDEX_FOCUS=0` opts out. Unit tests default to off so upstream tests keep asserting full
-/// scrollback output; Hushdex tests set the state explicitly instead of relying on this default.
+/// `NUTSHELL_FOCUS=0` (or legacy `HUSHDEX_FOCUS=0`) opts out. Unit tests default to off so
+/// upstream tests keep asserting full scrollback output; Nutshell tests set the state explicitly
+/// instead of relying on this default.
 pub(crate) fn default_enabled() -> bool {
     if cfg!(test) {
         return false;
     }
-    !matches!(std::env::var("HUSHDEX_FOCUS").as_deref(), Ok("0" | "false"))
+    let val = std::env::var("NUTSHELL_FOCUS").or_else(|_| std::env::var("HUSHDEX_FOCUS"));
+    !matches!(val.as_deref(), Ok("0" | "false"))
 }
 
 /// The `/focus` notice: the new state, the build identity, and the transcript-overlay key.
 pub(crate) fn focus_notice(enabled: bool) -> (String, Option<String>) {
     let message = if enabled {
         format!(
-            "Focus mode on (hushdex build {HUSHDEX_BUILD}): new tool activity is condensed to \
+            "Focus mode on (nutshell build {NUTSHELL_BUILD}): new tool activity is condensed to \
              one-line summaries."
         )
     } else {
         format!(
-            "Focus mode off (hushdex build {HUSHDEX_BUILD}): new tool activity is shown in full."
+            "Focus mode off (nutshell build {NUTSHELL_BUILD}): new tool activity is shown in full."
         )
     };
     let hint = crate::keymap::RuntimeKeymap::defaults()
@@ -75,7 +77,7 @@ impl ChatWidget {
 impl App {
     /// Lines written to terminal scrollback for a committed cell, honoring focus mode.
     ///
-    /// This is the single Hushdex hook for every scrollback path (insertion, resize reflow
+    /// This is the single Nutshell hook for every scrollback path (insertion, resize reflow
     /// rebuild, and rendered-tail bookkeeping), so those paths can never disagree. Raw output
     /// mode wins over focus mode because raw mode exists for verbatim terminal selection.
     pub(crate) fn scrollback_cell_hyperlink_lines(

@@ -221,7 +221,7 @@ pub(crate) trait HistoryCell: std::fmt::Debug + Send + Sync + Any {
     /// Returns the logical lines for the main chat viewport.
     fn display_lines(&self, width: u16) -> Vec<Line<'static>>;
 
-    /// Returns the lines written to terminal scrollback while Hushdex focus mode is on.
+    /// Returns the lines written to terminal scrollback while Nutshell focus mode is on.
     ///
     /// The default renders the cell in full, so only cells classified `summary` or `hidden` in
     /// `focus_allowlist.toml` override this. Overrides must never condense failures: errored,
@@ -231,7 +231,7 @@ pub(crate) trait HistoryCell: std::fmt::Debug + Send + Sync + Any {
         self.display_lines(width)
     }
 
-    /// Per-category activity counts for Hushdex focus-mode run aggregation.
+    /// Per-category activity counts for Nutshell focus-mode run aggregation.
     ///
     /// Returning `None` (the default) means the cell never merges into a `FocusAggregateCell`:
     /// full-class cells, hidden cells, and anything that must render in full (failures, user

@@ -75,7 +75,7 @@ impl ChatWidget {
         self.daybreak_enabled = self.config.features.enabled(Feature::CliDaybreak)
             && session.daybreak_enabled
             && !matches!(display, SessionConfiguredDisplay::SideConversation);
-        // Hushdex (fork): session switches report immediately so Herdr's resume argv and
+        // Nutshell (fork): session switches report immediately so Herdr's resume argv and
         // agent-session link track the live session, not just state transitions.
         self.note_herdr_state(None);
         #[cfg(target_os = "windows")]
