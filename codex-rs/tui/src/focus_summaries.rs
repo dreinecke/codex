@@ -94,17 +94,41 @@ impl std::ops::Add for FocusActivityCounts {
     }
 }
 
-/// Leading tokens of commands whose exit code 1 almost always means "no matches" rather than
-/// failure: searches, reads, and comparisons. Anything else exiting 1 (or any exit ≥ 2) keeps
-/// the full failure rendering.
-const BENIGN_EXIT_1_LEADS: &[&str] = &[
-    "awk", "cat", "diff", "echo", "file", "find", "git", "grep", "head", "hg", "jq", "less", "ls",
-    "printf", "pwd", "rg", "sed", "sort", "stat", "tail", "true", "uniq", "wc", "which",
+/// Leading tokens of read-only commands whose exit codes 1 or 2 almost always mean "no
+/// matches", a false condition test, or a missing/unreadable candidate path in a multi-path
+/// probe rather than an actionable failure. Anything else exiting non-zero keeps its failure
+/// one-liner.
+const BENIGN_PROBE_LEADS: &[&str] = &[
+    "[", "[[", "awk", "cat", "diff", "echo", "fd", "file", "find", "git", "grep", "head", "hg",
+    "jq", "less", "ls", "printf", "pwd", "readlink", "rg", "sed", "sort", "stat", "tail", "test",
+    "true", "uniq", "wc", "which",
 ];
 
-/// Whether an exec call may condense: exit 0 always; exit 1 only for parsed reads/searches or
-/// scripts led by a read-only command (skipping `cd` segments). Exit ≥ 2 and interrupted work
-/// are never condensed.
+fn strip_shell_clause_keywords(mut segment: &str) -> &str {
+    loop {
+        segment = segment.trim_start();
+        let Some(first) = segment.split_whitespace().next() else {
+            return "";
+        };
+        if matches!(
+            first,
+            "do" | "then" | "else" | "elif" | "if" | "while" | "until" | "!"
+        ) {
+            segment = &segment[first.len()..];
+            continue;
+        }
+        if first.contains('=') && !first.starts_with('=') && !first.starts_with('[') {
+            segment = &segment[first.len()..];
+            continue;
+        }
+        return segment;
+    }
+}
+
+/// Whether an exec call may condense: exit 0 always; exit 1 or 2 only for parsed reads/searches
+/// or scripts led by a read-only probe command (unwrapping shell loop/conditional clauses and
+/// skipping `cd` or `[`/`test` guard segments). Non-probe failures and interrupted work are
+/// never condensed.
 fn absorbable_exit(call: &ExecCall) -> bool {
     let Some(output) = call.output.as_ref() else {
         return false;
@@ -112,29 +136,62 @@ fn absorbable_exit(call: &ExecCall) -> bool {
     if output.exit_code == 0 {
         return true;
     }
-    if output.exit_code != 1 || call.duration.is_none() {
+    if !matches!(output.exit_code, 1 | 2) || call.duration.is_none() {
         return false;
     }
-    if call.parsed.iter().all(|parsed| {
-        matches!(
-            parsed,
-            ParsedCommand::Read { .. } | ParsedCommand::Search { .. }
-        )
-    }) {
+    if !call.parsed.is_empty()
+        && call.parsed.iter().all(|parsed| {
+            matches!(
+                parsed,
+                ParsedCommand::Read { .. } | ParsedCommand::Search { .. }
+            )
+        })
+    {
         return true;
     }
     let script = strip_bash_lc_and_escape(&call.command);
+    let mut saw_test_guard = false;
     script
-        .split([';', '&'])
-        .map(str::trim)
+        .split([';', '&', '\n'])
+        .map(strip_shell_clause_keywords)
         .filter(|segment| !segment.is_empty())
         .find_map(|segment| {
             let lead = segment.split_whitespace().next()?;
-            (!matches!(lead, "cd" | "pushd")).then_some(lead)
+            if matches!(
+                lead,
+                "cd" | "pushd"
+                    | "popd"
+                    | "for"
+                    | "case"
+                    | "select"
+                    | "done"
+                    | "fi"
+                    | "esac"
+                    | "true"
+                    | ":"
+            ) {
+                return None;
+            }
+            if matches!(lead, "[" | "[[" | "test") {
+                saw_test_guard = true;
+                return None;
+            }
+            Some((lead, segment))
         })
-        .map(|lead| {
-            let lead = lead.rsplit('/').next().unwrap_or(lead);
-            BENIGN_EXIT_1_LEADS.contains(&lead.to_ascii_lowercase().as_str())
+        .or_else(|| saw_test_guard.then_some(("test", "")))
+        .map(|(lead, segment)| {
+            let lead = lead.rsplit('/').next().unwrap_or(lead).to_ascii_lowercase();
+            if lead == "cat" && (segment.contains(" >") || segment.starts_with("cat>")) {
+                return false;
+            }
+            if lead == "sed"
+                && segment
+                    .split_whitespace()
+                    .any(|token| token == "-i" || token.starts_with("-i"))
+            {
+                return false;
+            }
+            BENIGN_PROBE_LEADS.contains(&lead.as_str())
         })
         .unwrap_or(false)
 }

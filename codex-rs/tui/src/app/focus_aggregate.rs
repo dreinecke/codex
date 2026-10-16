@@ -123,6 +123,22 @@ impl HistoryCell for FocusAggregateCell {
     }
 }
 
+fn can_aggregate(app: &App, tui: &tui::Tui) -> bool {
+    if !app.chat_widget.focus_mode() || app.chat_widget.raw_output_mode() {
+        return false;
+    }
+    let inline_replay_buffering = !tui.is_owned_screen()
+        && app
+            .initial_history_replay_buffer
+            .as_ref()
+            .is_some_and(|buffer| !buffer.render_from_transcript_tail);
+    if app.overlay.is_some() || inline_replay_buffering {
+        return false;
+    }
+    // Deferred cells are still queued; merging here would reorder their output.
+    app.native_history.is_empty()
+}
+
 /// Absorb `cell` into the trailing aggregate run if focus mode allows it.
 ///
 /// Returns `true` when the cell was absorbed (the caller must not insert it separately). The
@@ -133,14 +149,7 @@ pub(super) fn absorb_into_focus_aggregate(
     tui: &mut tui::Tui,
     cell: &Arc<dyn HistoryCell>,
 ) -> bool {
-    if !app.chat_widget.focus_mode() || app.chat_widget.raw_output_mode() {
-        return false;
-    }
-    if app.overlay.is_some() || app.initial_history_replay_buffer.is_some() {
-        return false;
-    }
-    if !app.native_history.is_empty() {
-        // Deferred cells are still queued; merging here would reorder their output.
+    if !can_aggregate(app, tui) {
         return false;
     }
     if cell.focus_activity_counts().is_none() {
@@ -206,28 +215,118 @@ pub(super) fn absorb_into_focus_aggregate(
     true
 }
 
+/// Fold consecutive absorbable tool cells inside a projected batch (such as an older history
+/// page) into `FocusAggregateCell` runs so paged-in history matches live and resumed turns.
+pub(super) fn fold_focus_aggregates(
+    app: &App,
+    tui: &tui::Tui,
+    cells: Vec<Arc<dyn HistoryCell>>,
+) -> Vec<Arc<dyn HistoryCell>> {
+    if !can_aggregate(app, tui) {
+        return cells;
+    }
+    let mut out: Vec<Arc<dyn HistoryCell>> = Vec::with_capacity(cells.len());
+    for cell in cells {
+        if cell.focus_activity_counts().is_none() {
+            out.push(cell);
+            continue;
+        }
+        if let Some(run_index) = trailing_aggregate_index_in(&out)
+            && let Some(mut parts) = out[run_index]
+                .as_any()
+                .downcast_ref::<FocusAggregateCell>()
+                .map(|aggregate| aggregate.parts.clone())
+        {
+            parts.push(cell);
+            out[run_index] = Arc::new(FocusAggregateCell::new(parts));
+        } else {
+            out.push(Arc::new(FocusAggregateCell::new(vec![cell])));
+        }
+    }
+    out
+}
+
+/// Merge two `FocusAggregateCell` runs that were split across an older-history page boundary.
+pub(super) fn join_older_focus_aggregate(app: &mut App, tui: &tui::Tui, boundary: usize) {
+    if !can_aggregate(app, tui) || boundary == 0 || boundary >= app.transcript_cells.len() {
+        return;
+    }
+    let Some(older_index) = trailing_aggregate_index_in(&app.transcript_cells[..boundary]) else {
+        return;
+    };
+    let mut newer_index = None;
+    for (offset, cell) in app.transcript_cells[boundary..]
+        .iter()
+        .enumerate()
+        .take(/*n*/ 64)
+    {
+        if cell.as_any().downcast_ref::<FocusAggregateCell>().is_some() {
+            newer_index = Some(boundary + offset);
+            break;
+        }
+        if interrupts_run(cell) {
+            return;
+        }
+    }
+    let Some(newer_index) = newer_index else {
+        return;
+    };
+    let Some(mut parts) = app.transcript_cells[older_index]
+        .as_any()
+        .downcast_ref::<FocusAggregateCell>()
+        .map(|aggregate| aggregate.parts.clone())
+    else {
+        return;
+    };
+    let Some(newer_parts) = app.transcript_cells[newer_index]
+        .as_any()
+        .downcast_ref::<FocusAggregateCell>()
+        .map(|aggregate| aggregate.parts.clone())
+    else {
+        return;
+    };
+    parts.extend(
+        app.transcript_cells[older_index + 1..newer_index]
+            .iter()
+            .cloned(),
+    );
+    parts.extend(newer_parts);
+    let merged: Arc<dyn HistoryCell> = Arc::new(FocusAggregateCell::new(parts));
+    let range = older_index..newer_index + 1;
+    app.transcript_view
+        .replace_group(&app.transcript_cells, range.clone(), &merged);
+    app.transcript_cells.splice(range, [merged]);
+}
+
+fn interrupts_run(cell: &Arc<dyn HistoryCell>) -> bool {
+    !cell.is_stream_continuation()
+        && cell
+            .as_any()
+            .downcast_ref::<crate::focus::FocusHiddenHistoryCell>()
+            .is_none()
+        && cell
+            .as_any()
+            .downcast_ref::<ReasoningSummaryCell>()
+            .is_none()
+}
+
 /// Index of the aggregate cell ending the current run, if any.
 ///
 /// Hidden cells, stream-continuation fragments, and hidden lifecycle telemetry do not interrupt
 /// a run; the first visible non-aggregate cell does.
 fn trailing_aggregate_index(app: &App) -> Option<usize> {
+    trailing_aggregate_index_in(&app.transcript_cells)
+}
+
+fn trailing_aggregate_index_in(cells: &[Arc<dyn HistoryCell>]) -> Option<usize> {
     // Hushdex: reasoning-heavy turns push many hidden cells between the aggregate and the
     // next absorbable cell; a small window made consecutive runs emit adjacent aggregates
     // instead of merging. The scan stays cheap — pointer downcasts over hidden cells only.
-    for (index, cell) in app.transcript_cells.iter().enumerate().rev().take(/*n*/ 64) {
+    for (index, cell) in cells.iter().enumerate().rev().take(/*n*/ 64) {
         if cell.as_any().downcast_ref::<FocusAggregateCell>().is_some() {
             return Some(index);
         }
-        let interrupts_run = !cell.is_stream_continuation()
-            && cell
-                .as_any()
-                .downcast_ref::<crate::focus::FocusHiddenHistoryCell>()
-                .is_none()
-            && cell
-                .as_any()
-                .downcast_ref::<ReasoningSummaryCell>()
-                .is_none();
-        if interrupts_run {
+        if interrupts_run(cell) {
             return None;
         }
     }

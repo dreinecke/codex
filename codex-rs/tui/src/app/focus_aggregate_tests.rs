@@ -542,3 +542,170 @@ fn hidden_lifecycle_wrapper_delegates_full_presentations() {
         "the pager keeps the event"
     );
 }
+
+#[test]
+fn benign_shell_loops_and_rg_exit_2_probes_do_not_count_as_failures() {
+    let loop_probe = exec_cell(
+        "loop-probe",
+        "for instruction_file in /AGENTS.md /tmp/AGENTS.md; do [ -f \"$instruction_file\" ] && sed -n '1,80p' \"$instruction_file\"; done",
+        vec![ParsedCommand::Unknown {
+            cmd: "for instruction_file in /AGENTS.md /tmp/AGENTS.md; do".to_string(),
+        }],
+        /*exit_code*/ 1,
+    );
+    assert_eq!(
+        exec_activity_counts(&loop_probe),
+        Some(FocusActivityCounts {
+            shells: 1,
+            ..FocusActivityCounts::default()
+        }),
+        "read-only for-loop probes exiting 1 are benign"
+    );
+
+    let rg_exit_2 = exec_cell(
+        "rg-exit-2",
+        "rg --files -g AGENTS.md -g '!node_modules' -g '!.git' /tmp 2>/dev/null",
+        vec![ParsedCommand::Search {
+            cmd: "rg --files".to_string(),
+            query: None,
+            path: Some("/tmp".to_string()),
+        }],
+        /*exit_code*/ 2,
+    );
+    assert_eq!(
+        exec_activity_counts(&rg_exit_2),
+        Some(FocusActivityCounts {
+            patterns: 1,
+            ..FocusActivityCounts::default()
+        }),
+        "rg exit-2 directory sweeps stay condensed as searches"
+    );
+
+    let loop_failure = exec_cell(
+        "loop-fail",
+        "for f in a b; do [ -f \"$f\" ] && pytest \"$f\"; done",
+        vec![ParsedCommand::Unknown {
+            cmd: "for f in a b; do".to_string(),
+        }],
+        /*exit_code*/ 1,
+    );
+    assert_eq!(
+        exec_activity_counts(&loop_failure),
+        Some(FocusActivityCounts {
+            failures: 1,
+            shells: 1,
+            ..FocusActivityCounts::default()
+        }),
+        "non-read commands inside loops still count as failures"
+    );
+
+    let cat_write_failure = exec_cell(
+        "cat-write-fail",
+        "cat > tmp/out.py <<'PY'\nprint(1)\nPY",
+        vec![ParsedCommand::Unknown {
+            cmd: "cat > tmp/out.py".to_string(),
+        }],
+        /*exit_code*/ 2,
+    );
+    assert_eq!(
+        exec_activity_counts(&cat_write_failure),
+        Some(FocusActivityCounts {
+            failures: 1,
+            shells: 1,
+            ..FocusActivityCounts::default()
+        }),
+        "heredoc file writes via cat > still count as failures"
+    );
+}
+
+#[tokio::test]
+async fn owned_screen_resume_and_older_history_pages_merge_runs() {
+    let (mut app, _events, _ops) = crate::app::tests::make_test_app_with_channels().await;
+    let mut tui = crate::tui::test_support::make_test_tui().expect("test tui");
+    tui.set_owned_screen(/*owned*/ true)
+        .expect("enable owned screen");
+    app.chat_widget.set_focus_mode(true);
+    app.begin_initial_history_replay_buffer();
+
+    app.insert_history_cell(
+        &mut tui,
+        Box::new(exec_cell(
+            "resume-1",
+            "rg divide src/",
+            vec![ParsedCommand::Search {
+                cmd: "rg divide src/".to_string(),
+                query: Some("divide".to_string()),
+                path: Some("src/".to_string()),
+            }],
+            /*exit_code*/ 0,
+        )),
+    );
+    app.insert_history_cell(
+        &mut tui,
+        Box::new(exec_cell(
+            "resume-2",
+            "cat src/calc.py",
+            vec![ParsedCommand::Read {
+                cmd: "cat src/calc.py".to_string(),
+                name: "calc.py".to_string(),
+                path: PathBuf::from("src/calc.py"),
+            }],
+            /*exit_code*/ 0,
+        )),
+    );
+    app.finish_initial_history_replay_buffer(&mut tui);
+
+    assert_eq!(
+        app.transcript_cells.len(),
+        1,
+        "owned-screen initial replay merges consecutive tool cells into one aggregate"
+    );
+    assert_eq!(
+        lines_to_string(&app.transcript_cells[0].focus_lines(/*width*/ 80)),
+        "Searched for 1 pattern, read 1 file"
+    );
+
+    // Prepending an older history page that ends in a tool run folds the page and joins across
+    // the boundary with the existing aggregate.
+    let older_page: Vec<Arc<dyn HistoryCell>> = vec![
+        Arc::new(new_user_prompt(
+            "Earlier prompt".to_string(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        )),
+        Arc::new(exec_cell(
+            "older-1",
+            "pwd",
+            vec![ParsedCommand::Unknown {
+                cmd: "pwd".to_string(),
+            }],
+            /*exit_code*/ 0,
+        )),
+        Arc::new(exec_cell(
+            "older-2",
+            "git status --short",
+            vec![ParsedCommand::Unknown {
+                cmd: "git status --short".to_string(),
+            }],
+            /*exit_code*/ 0,
+        )),
+    ];
+    let folded = fold_focus_aggregates(&app, &tui, older_page);
+    assert_eq!(folded.len(), 2, "prompt + folded aggregate");
+    let boundary = folded.len();
+    app.transcript_cells.splice(0..0, folded);
+    join_older_focus_aggregate(&mut app, &tui, boundary);
+
+    assert_eq!(
+        app.transcript_cells.len(),
+        2,
+        "older page aggregate joins with the newer page aggregate across the boundary"
+    );
+    assert_eq!(
+        lines_to_string(&app.transcript_cells[1].focus_lines(/*width*/ 80)),
+        "Searched for 1 pattern, read 1 file, ran 2 shell commands"
+    );
+    tui.set_owned_screen(/*owned*/ false)
+        .expect("disable owned screen");
+}

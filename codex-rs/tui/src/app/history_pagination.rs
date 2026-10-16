@@ -114,11 +114,13 @@ impl App {
             &cwd,
             visibility,
         );
+        let cells = focus_aggregate::fold_focus_aggregates(self, tui, cells);
         let inserted = self.prepend_older_transcript_cells(cells);
         self.transcript_view
             .history_loaded(&self.transcript_cells, inserted.clone());
         if !inserted.is_empty() {
             self.join_older_activity_group(inserted.end, &turns);
+            focus_aggregate::join_older_focus_aggregate(self, tui, inserted.end);
         }
         merge_older_turns(&mut store.lock().await.turns, turns);
         self.scrollback_has_older_history = app_server.has_older_history(thread_id);

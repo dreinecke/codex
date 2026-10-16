@@ -58,6 +58,7 @@ The plan's assumptions held, with these precise locations:
 | `codex-rs/tui/src/history_cell/computer_activity.rs` | `ComputerActivityCell::focus_lines` → summary. |
 | `codex-rs/tui/src/exec_cell/render.rs` | `ExecCell::focus_lines` → command summary. |
 | `codex-rs/tui/src/app/history_ui.rs` | 2 call sites route through the focus-aware helper; insertion absorbs into aggregate runs. |
+| `codex-rs/tui/src/app/history_pagination.rs` | Fold older history pages into `FocusAggregateCell` runs and join runs split across page boundaries (+2 lines). |
 | `codex-rs/tui/src/app.rs` | Register `mod focus_aggregate;` (+1 line). |
 | `codex-rs/tui/src/app/native_history.rs` | `NativeHistory::is_empty` guard for aggregation (+3 lines). |
 | `codex-rs/tui/src/app/resize_reflow.rs` | 5 call sites route through the focus-aware helper. |
@@ -183,11 +184,14 @@ condensed).
 - Cells whose `focus_lines` is empty are skipped entirely, including the blank separator line —
   the existing empty-line machinery in `display_lines_for_history_insert` already does this once
   the lines are empty.
-- **Failure rendering is tiered by exit code.** Exit ≥ 2 (and interrupted work) always renders
-  in the full transcript form with the exit code. Exit 1 is treated as benign — "no matches" —
-  and stays condensed when the command is read-only: parsed reads/searches, or a script led by a
-  read-only command from `BENIGN_EXIT_1_LEADS` in `focus_summaries.rs` (cat/rg/grep/tail/git/…,
-  skipping `cd` segments). Exit 1 from anything else (pytest, cargo, …) renders in full.
+- **Failure rendering is tiered by exit code.** Non-probe failures and interrupted work condense to
+  a one-line `✗ <command> (exit N)` row beneath the run summary. Exit 1 and exit 2 are treated as
+  benign — "no matches", false condition tests, or missing/unreadable candidate paths during
+  directory probes — and stay condensed when the command is read-only: parsed reads/searches, or a
+  script led by a read-only command from `BENIGN_PROBE_LEADS` in `focus_summaries.rs`
+  (cat/rg/grep/tail/git/sed/ls/find/…, unwrapping shell `for`/`if`/`do` clauses and skipping `cd`
+  or `[`/`test` guard segments, while excluding file writes like `cat >` and `sed -i`). Non-zero
+  exits from anything else (pytest, cargo, sh, …) render as failures.
 - **Fullscreen (owned-screen) mode — the TUI default — condenses too.** The owned transcript
   renders committed cells through `TranscriptView::entry_layout` in
   `tui/src/transcript_view/layout.rs`; when focus is on, those cells render `focus_lines`
@@ -199,14 +203,15 @@ condensed).
   layout path.
 - **Run aggregation (Claude Code style).** Consecutive absorbable tool cells merge into one
   `FocusAggregateCell` (`tui/src/app/focus_aggregate.rs`) that renders a single dim line with
-  per-category counts. Absorption happens in `App::insert_history_cell`; merging rewrites the
+  per-category counts. Absorption happens in `App::insert_history_cell` (including during
+  owned-screen session resume and thread-switch replay) and in `handle_older_history_page`
+  (`fold_focus_aggregates` + `join_older_focus_aggregate`); in inline mode, merging rewrites the
   last scrollback block in place via upstream's `replace_visible_history_tail`, so a growing
   run stays one line. Cells report their counts through the `focus_activity_counts` trait
-  method. Failures, user `!` commands, agent messages, prompts, and anything unclassified close
+  method. User `!` commands, agent messages, prompts, and anything unclassified close
   the run and render normally; hidden reasoning cells do not interrupt it. The `Ctrl+T` pager
   receives every original cell, and turning focus off expands aggregates back to the full
-  presentations. Aggregates do not survive session resume (rebuilt transcripts render per-cell
-  summaries). Stream-continuation fragments and focus-hidden cells do not close a run, so a
+  presentations. Stream-continuation fragments and focus-hidden cells do not close a run, so a
   message streamed in fragments or interleaved lifecycle telemetry keeps one aggregate line.
 - Raw output mode (`/raw`) wins over focus mode: raw mode is for verbatim terminal selection, so
   focus condensation is suspended while it is active.
