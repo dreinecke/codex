@@ -14,11 +14,31 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 install_dir="${HUSHDEX_INSTALL_DIR:-${HOME}/.local/bin}"
 libexec_dir="${HUSHDEX_LIBEXEC_DIR:-${HOME}/.local/libexec/hushdex}"
 
-echo "Building hushdex (release) from ${repo_root} ..."
-cargo build --release --manifest-path "${repo_root}/codex-rs/Cargo.toml" --package codex-cli --bin codex
+echo "Building hushdex and codex-code-mode-host (release) from ${repo_root} ..."
+host_target="$(rustc -vV | sed -n 's/^host: //p')"
+eval "$(
+  CODEX_REPO_ROOT="${repo_root}" python3 - "${repo_root}/scripts" "${host_target}" <<'PY'
+import shlex
+import sys
+
+scripts_dir, target = sys.argv[1], sys.argv[2]
+sys.path.insert(0, scripts_dir)
+from codex_package.targets import TARGET_SPECS
+from codex_package.v8 import resolve_codex_v8_cargo_env
+
+spec = TARGET_SPECS.get(target)
+if spec is not None:
+    for key, value in resolve_codex_v8_cargo_env(spec).items():
+        print(f"export {key}={shlex.quote(value)}")
+PY
+)"
+cargo build --release --manifest-path "${repo_root}/codex-rs/Cargo.toml" \
+  --package codex-cli --bin codex \
+  --package codex-code-mode-host --bin codex-code-mode-host
 
 mkdir -p "${install_dir}" "${libexec_dir}"
 install -m 0755 "${repo_root}/codex-rs/target/release/codex" "${libexec_dir}/hushdex"
+install -m 0755 "${repo_root}/codex-rs/target/release/codex-code-mode-host" "${libexec_dir}/codex-code-mode-host"
 # Replace atomically: overwriting in place fails with ETXTBSY while a pane runs the launcher.
 wrapper_tmp="$(mktemp "${install_dir}/.hushdex-wrapper.XXXXXX")"
 cat > "${wrapper_tmp}" <<'WRAPPER'
